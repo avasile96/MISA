@@ -10,21 +10,23 @@ clc;close all;clear all;
 iterNum = 10;
 N_region=3;  q=1;
 %Img=imread('brainweb64.tif');
-Img=imread('C:\Users\robert\Documents\docencia\Udg\MIA_vibot\labs\2017\pre-processing\data\pa4-16_t2.png');
+% Img=imread('C:\Users\robert\Documents\docencia\Udg\MIA_vibot\labs\2017\pre-processing\data\pa4-16_t2.png');
 
 
-%Img=imread('mprage171.tif');
+Img=imread('mprage171.tif');
 Img = double(Img(:,:,1));
 %load ROI
 A=255;
 Img_original = Img;
-[nrow,ncol] = size(Img);n = nrow*ncol;
+[nrow,ncol] = size(Img); % getting the image dimensions
+n = nrow*ncol; % # of px
 
-ROI = (Img>20); ROI = double(ROI);
+ROI = (Img>20); ROI = double(ROI); % Simple Thresholding (selecting GSV>20)
 
 tic
 
-Bas=getBasisOrder3(nrow,ncol);
+Bas=getBasisOrder3(nrow,ncol); % Getting the set of Basis functions used
+% to approximate the Bias Field later on
 N_bas=size(Bas,3);
 for ii=1:N_bas
     ImgG{ii} = Img.*Bas(:,:,ii).*ROI;
