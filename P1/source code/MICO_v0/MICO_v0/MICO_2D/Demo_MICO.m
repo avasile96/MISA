@@ -14,7 +14,7 @@ q=1; % Fuzzifier
 % Img=imread('C:\Users\robert\Documents\docencia\Udg\MIA_vibot\labs\2017\pre-processing\data\pa4-16_t2.png');
 
 
-Img=imread('mprage171.tif');
+Img=imread('brainweb64.tif');
 Img = double(Img(:,:,1));
 %load ROI
 A=255;

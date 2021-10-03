@@ -17,7 +17,7 @@
 clear all;
 close all;
 
-iterNum_outer=15;  % outer iteration
+iterNum_outer=5;  % outer iteration
 iterCM=2;  % inner interation for C and M
 iter_b=1;  % inner iteration for bias
 q = 1.5;   % fuzzifier
@@ -25,7 +25,7 @@ th_bg = 5;  %% threshold for removing background
 N_region = 3; %% number of tissue types, e.g. WM, GM, CSF
 tissueLabel=[1, 2, 3];
 
-str_vector{1} = 't1_icbm_normal_1mm_pn0_rf20.mnc.gz.nii';   % input a sequence of image file names
+str_vector{1} = 'D:\Uni\Spain\MISA\MISA\l1_preprocessing\braindata\t1_icbm_normal_1mm_pn0_rf20.nii';   % input a sequence of image file names
 % str_vector{2} = 'brainweb_byte_B3N1.nii';
 
 
