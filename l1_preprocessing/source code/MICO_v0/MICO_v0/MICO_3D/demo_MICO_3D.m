@@ -25,7 +25,7 @@ th_bg = 5;  %% threshold for removing background
 N_region = 3; %% number of tissue types, e.g. WM, GM, CSF
 tissueLabel=[1, 2, 3];
 
-str_vector{1} = 't1_icbm_normal_1mm_pn0_rf20.mnc.gz.nii';   % input a sequence of image file names
+str_vector{1} = 't1_icbm_normal_1mm_pn0_rf0.nii';   % input a sequence of image file names
 % str_vector{2} = 'brainweb_byte_B3N1.nii';
 
 
