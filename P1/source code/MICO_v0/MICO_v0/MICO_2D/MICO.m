@@ -13,7 +13,7 @@ function [M_out, b_out, C_out]=  MICO(Img,q,W,M,C,b,Bas,GGT,ImgG, Iter, iterCM)
 
 for n = 1:Iter
 
-    C = updateC(Img, W, b, M);
+    C = updateC(Img, W, b, M); % W = ROI
     for k=1:iterCM
         N_class=size(M,3);
         e=zeros(size(M));
@@ -61,7 +61,8 @@ w=inv(A)*V;
 
 b=zeros(size(Img));
 for kk=1:N_bas
-    b=b+w(kk)*Bas(:,:,kk);
+    b=b+w(kk)*Bas(:,:,kk); % Finding the linear combination of Basis Field
+    % with the list created in the Main
 end
 
 %%%%%%%%%%%%%%%%%%
@@ -69,11 +70,13 @@ end
 function C_new  =updateC(Img, W,b, M)
 N_class=size(M,3);
 for nn=1:N_class
-    N=b.*Img.*M(:,:,nn);
-    D=(b.^2) .*M(:,:,nn);
-    sN = sum(N(:).*W(:));    % inner product
-    sD = sum(D(:).*W(:));   % inner product
-    C_new(nn)=sN/(sD+(sD==0));
+    N=b.*Img.*M(:,:,nn); % Image, Membership functions, Bias Field
+    D=(b.^2) .*M(:,:,nn); % bias field, membership functions
+    sN = sum(N(:).*W(:));    % inner product N(ominator)*ROI
+    sD = sum(D(:).*W(:));   % inner product D(enominator)*ROI
+    C_new(nn)=sN/(sD+(sD==0)); 
+    % New values for tissues = nominator/(denominator)  (and 1 when the
+    % denominator is 0) Nice trick
 end
 
 clear N;
@@ -85,7 +88,7 @@ function M = updateM(e, q)
 
 N_class=size(e,3);
 
-if q >1
+if q >1 % Soft segmentation
     epsilon=0.000000000001;
     e=e+epsilon;  %% avoid division by zero
     p = 1/(q-1);
@@ -94,7 +97,7 @@ if q >1
     for kk=1:N_class
         M(:,:,kk) = f(:,:,kk)./f_sum;
     end
-elseif q==1
+elseif q==1 % Hard Segmentation
     [e_min,N_min] = min(e,[], 3);  
     for kk=1:N_class
         M(:,:,kk) = (N_min == kk);

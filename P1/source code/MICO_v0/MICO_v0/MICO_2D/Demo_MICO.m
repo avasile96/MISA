@@ -8,7 +8,8 @@
 
 clc;close all;clear all;
 iterNum = 10;
-N_region=3;  q=1;
+N_region=3; % Number of regions % Poor code etiquete, this is hard coded below (basically every time you see a 3)
+q=1; % Fuzzifier
 %Img=imread('brainweb64.tif');
 % Img=imread('C:\Users\robert\Documents\docencia\Udg\MIA_vibot\labs\2017\pre-processing\data\pa4-16_t2.png');
 
@@ -26,32 +27,39 @@ ROI = (Img>20); ROI = double(ROI); % Simple Thresholding (selecting GSV>20)
 tic
 
 Bas=getBasisOrder3(nrow,ncol); % Getting the set of Basis functions used
-% to approximate the Bias Field later on
+% to approximate the Bias Field later on % 3rd order functions
 N_bas=size(Bas,3);
+% We calculate product permutations of different Bias Basis function
+% in the region of interest
 for ii=1:N_bas
     ImgG{ii} = Img.*Bas(:,:,ii).*ROI;
     for jj=ii:N_bas
         GGT{ii,jj} = Bas(:,:,ii).*Bas(:,:,jj).*ROI;
         GGT{jj,ii} = GGT{ii,jj} ;
     end
-end
+end 
 
 
-energy_MICO = zeros(3,iterNum);
+energy_MICO = zeros(3,iterNum); % Energy Matrix
 
-b=ones(size(Img));
+b=ones(size(Img)); % Bias Field initialization?
 for ini_num = 1:1
-    C=rand(3,1);
-    C=C*A;
-    M=rand(nrow,ncol,3);
+    C=rand(3,1); % types of tissues represented by constants
+    C=C*A; % Getting 3 random numbers from 0 to 255
+    M=rand(nrow,ncol,3); % field of membership functions' random initialization
     a=sum(M,3);
     for k = 1 : N_region
-        M(:,:,k)=M(:,:,k)./a;
+        M(:,:,k)=M(:,:,k)./a; % Normalization step
     end
     
-    [e_max,N_max] = max(M,[], 3);
+    % We get the index of the maximum elemnt of M along the 3rd dimension
+    [e_max,N_max] = max(M,[], 3); 
+    % from 1 to size of the depth of M (number of tissues really)
     for kk=1:size(M,3)
-        M(:,:,kk) = (N_max == kk);
+        % The tissue plane of M gets to be one if the index of the maximum
+        % is the actual tissue of the current iterration i.e. we sort
+        % tissues in order of GSV really
+        M(:,:,kk) = (N_max == kk); 
     end
     
     M_old = M; chg=10000;
@@ -62,7 +70,8 @@ for ini_num = 1:1
         pause(0.1)
         
         [M, b, C]=  MICO(Img,q,ROI,M,C,b,Bas,GGT,ImgG,1, 1);
-        energy_MICO(ini_num,n) = get_energy(Img,b,C,M,ROI,q);
+        energy_MICO(ini_num,n) = get_energy(Img,b,C,M,ROI,q); % Variable 
+        % used for storing the values of energy after each iterration
         
         figure(2),
         if(mod(n,1) == 0)
