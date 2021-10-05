@@ -10,7 +10,7 @@ clc;close all;clear all;
 iterNum = 20;
 N_region=3; % Number of regions % Poor code etiquete, this is hard coded below (basically every time you see a 3)
 q=1; % Fuzzifier
-basis_order = 4;
+basis_order = 3;
 %Img=imread('brainweb64.tif');
 % Img=imread('C:\Users\robert\Documents\docencia\Udg\MIA_vibot\labs\2017\pre-processing\data\pa4-16_t2.png');
 
@@ -114,13 +114,13 @@ for i = 1:1 % numel(list)
     subplot(141),imshow(Img,[]),title('Original image');
 
     subplot(142),imshow(seg.*ROI,[]),title('Segmentation result');
-    imwrite(seg.*ROI./max(max(seg.*ROI)), sprintf('%s%s_q_%d_iter_%d_basis_%d%s',BaseName_save,'seg_res',q,iterNum,basis_order,'.png'));
+    imwrite(seg.*ROI, sprintf('%s%s_q_%d_iter_%d_basis_%d%s',BaseName_save,'seg_res',q,iterNum,basis_order,'.png'));
 
     subplot(143),imshow(b.*ROI,[]),title('bias field');
-    imwrite(b.*ROI./max(max(b.*ROI)), sprintf('%s%s_q_%d_iter_%d_basis_%d%s',BaseName_save,'bf',q,iterNum,basis_order,'.png'));
+    imwrite(b.*ROI, sprintf('%s%s_q_%d_iter_%d_basis_%d%s',BaseName_save,'bf',q,iterNum,basis_order,'.png'));
 
     subplot(144),imshow(uint8(img_bc.*ROI),[]),title('bias corrected');
-    imwrite(img_bc.*ROI./max(max(img_bc.*ROI)), sprintf('%s%s_q_%d_iter_%d_basis_%d%s',BaseName_save,'bf_corr',q,iterNum,basis_order,'.png'));
+    imwrite(img_bc.*ROI, sprintf('%s%s_q_%d_iter_%d_basis_%d%s',BaseName_save,'bf_corr',q,iterNum,basis_order,'.png'));
 end
 
 filename = sprintf('%s_q_%d_iter_%d_basis_%d','seg_res',q,iterNum,basis_order);
