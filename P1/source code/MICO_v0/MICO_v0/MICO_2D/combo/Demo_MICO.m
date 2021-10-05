@@ -7,21 +7,21 @@
 % URL:  http://imagecomputing.org/~cmli/
 
 clc;close all;clear all;
-iterNum = 10;
+iterNum = 3;
 N_region=3; % Number of regions % Poor code etiquete, this is hard coded below (basically every time you see a 3)
-q=10; % Fuzzifier
+q=1; % Fuzzifier
 basis_order = 3;
 %Img=imread('brainweb64.tif');
 % Img=imread('C:\Users\robert\Documents\docencia\Udg\MIA_vibot\labs\2017\pre-processing\data\pa4-16_t2.png');
 
-path='D:\Uni\Spain\MISA\MISA\P1\source code\MICO_v0\MICO_v0\MICO_2D\';
-list=dir([path, '*.tif']);
+path='D:\Uni\Spain\MISA\MISA\l1_preprocessing\braindata\';
+list=dir([path, '*.nii']);
 BaseName_save = 'D:\Uni\Spain\MISA\MISA\P1\Report\';
 
 for i = 1:1 % numel(list)
 
-    Img=imread(list(i).name);
-    Img = double(Img(:,:,1));
+    Img=load_untouch_nii(sprintf('%s%s',path,list(i).name));
+    Img = double(Img.img(:,:,100));
     %load ROI
     A=255;
     Img_original = Img;
