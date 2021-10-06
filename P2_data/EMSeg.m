@@ -32,39 +32,39 @@ s=length(ima);
 % create image histogram
 
 h=histogram(ima);
-x=find(h);
-h=h(x);
-x=x(:);h=h(:);
+x=find(h); % indices of non-zero elements of h
+h=h(x); % we populate h with only its non-zero elements
+x=x(:);h=h(:); % from 1x427 becomes 427x1 (vectorize lol)
 
 % initiate parameters
 
-mu=(1:k)*m/(k+1);
-v=ones(1,k)*m;
-p=ones(1,k)*1/k;
+mu=(1:k)*m/(k+1); % initialization of the mean for each class
+v=ones(1,k)*m; % init of variances
+p=ones(1,k)*1/k; % init of proprtions?
 
 % start process
 
-sml = mean(diff(x))/1000;
+sml = mean(diff(x))/1000; % maybe to avoid dividing by 0 later
 while(1)
         % Expectation
         prb = distribution(mu,v,p,x);
         scal = sum(prb,2)+eps;
-        loglik=sum(h.*log(scal));
+        loglik=sum(h.*log(scal)); %logarithmic likelihood
         
-        %Maximizarion
+        %Maximization
         for j=1:k
                 pp=h.*prb(:,j)./scal;
-                p(j) = sum(pp);
-                mu(j) = sum(x.*pp)/p(j);
+                p(j) = sum(pp); % updating proportions
+                mu(j) = sum(x.*pp)/p(j); % updating the mean
                 vr = (x-mu(j));
-                v(j)=sum(vr.*vr.*pp)/p(j)+sml;
+                v(j)=sum(vr.*vr.*pp)/p(j)+sml; % updating the mean
         end
         p = p + 1e-3;
         p = p/sum(p);
 
         % Exit condition
         prb = distribution(mu,v,p,x);
-        scal = sum(prb,2)+eps;
+        scal = sum(prb,2)+eps; % scal = smooth histogram of the distribution of gaussians with which we approximate segmentations
         nloglik=sum(h.*log(scal));                
         if((nloglik-loglik)<0.0001) break; end;        
 
