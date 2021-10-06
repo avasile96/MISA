@@ -8,9 +8,9 @@
 
 clc;close all;clear all;
 iterNum = 10;
-N_region=3;  q=1;
-%Img=imread('brainweb64.tif');
-Img=imread('C:\Users\robert\Documents\docencia\Udg\MIA_vibot\labs\2017\pre-processing\data\pa4-16_t2.png');
+N_region=3;  q=1;  % High q, more classes for segmentation 
+Img=imread('brainweb90.tif');
+%Img=imread('C:\Users\robert\Documents\docencia\Udg\MIA_vibot\labs\2017\pre-processing\data\pa4-16_t2.png');
 
 
 %Img=imread('mprage171.tif');
