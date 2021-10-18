@@ -40,7 +40,7 @@ x=x(:);h=h(:); % from 1x427 becomes 427x1 (vectorize lol)
 
 mu=(1:k)*m/(k+1); % initialization of the mean for each class
 v=ones(1,k)*m; % init of variances
-p=ones(1,k)*1/k; % init of proprtions?
+p=ones(1,k)*1/k; % init of proportions?
 
 % start process
 
@@ -66,7 +66,7 @@ while(1)
         prb = distribution(mu,v,p,x);
         scal = sum(prb,2)+eps; % scal = smooth histogram of the distribution of gaussians with which we approximate segmentations
         nloglik=sum(h.*log(scal));                
-        if((nloglik-loglik)<0.0001) break; end;        
+        if((nloglik-loglik)<0.0001), break; end        
 
         clf
         plot(x,h);
@@ -81,8 +81,8 @@ mu=mu+mi-1;   % recover real range
 s=size(copy);
 mask=zeros(s);
 
-for i=1:s(1),
-for j=1:s(2),
+for i=1:s(1)
+for j=1:s(2)
   for n=1:k
     c(n)=distribution(mu(n),v(n),p(n),copy(i,j)); 
   end
@@ -113,15 +113,15 @@ datos(ind)=0;
 tam=length(datos);
 m=ceil(max(datos))+1;
 h=zeros(1,m);
-for i=1:tam,
+for i=1:tam
     f=floor(datos(i));    
-    if(f>0 & f<(m-1))        
+    if(f>0 && f<(m-1))        
         a2=datos(i)-f;
         a1=1-a2;
         h(f)  =h(f)  + a1;      
         h(f+1)=h(f+1)+ a2;                          
-    end;
-end;
+    end
+end
 h=conv(h,[1,2,3,2,1]);
 h=h(3:(length(h)-2));
 h=h/sum(h);
