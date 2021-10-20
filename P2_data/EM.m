@@ -1,4 +1,4 @@
-function [mask,mu,v,p] = EM(img)
+function [mask,mu,v,p] = EM(IMG_T1, IMG_T2)
 %UNTITLED2 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -6,18 +6,21 @@ function [mask,mu,v,p] = EM(img)
 k = 4;
 
 % check image
-img = double(img);
-copy = img;           % make a copy
-img = img(:);         % vectorize ima
-% mi = min(img);        % deal with negative, delete line
+img_T1 = double(IMG_T1);
+img_T2 = double(IMG_T2);
+copy_T1 = img_T1;           % make a copy
+copy_T2 = img_T2;           % make a copy
+% img_T1T2 = normalize([img_T1(:) img_T2(:)],'range');      % vectorize ima 
+img_T1T2 = [img_T1(:) img_T2(:)];% vectorize ima 
+mi_T1T2 = min(img_T1T2);        % deal with negative, delete line
 % img = img-mi+1;       % and zero values, delete line
-m = max(img);
-s = length(img);
+m_T1T2 = max(img_T1T2);
+s = length(img_T1T2);
 
 % create image histogram
 
-h=histo(img);
-x = find(h); % indices of non-zero elements of h
+h=histo(img_T1T2);
+x = find(h); % indices of non-zero elements of h % just the GSV of the image
 h = h(x); % we populate h with only its non-zero elements
 x = x(:); h = h(:); % from 1x427 becomes 427x1 (traspose)
 
@@ -54,10 +57,12 @@ while(1)
         if((nloglik-loglik)<0.0001), break; end        
 
         clf
-        plot(x,h);
+        plot(x,h,'DisplayName','original image histo');
         hold on
-        plot(x,prb,'g--')
-        plot(x,sum(prb,2),'r')
+        plot(x,prb,'g--','DisplayName','aproximated distribution')
+        hold on
+        plot(x,sum(prb,2),'r','DisplayName','convolved distributions')
+        legend
         drawnow
 end
 
