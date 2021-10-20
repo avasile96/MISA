@@ -10,8 +10,7 @@ m = max(m); % we work with the larger histogram vector
 h=zeros(m,2);
 for j=1:size(datos,2) % multichannel implementation
     for i=1:tam  % Loop to get the histogram of the vectorized image
-        f=floor(datos(i,j));    
-%         if(f>0 && f<(m-1))
+        f=floor(datos(i,j));  
         if and(f>0,f<(m-1))
             a2=datos(i,j)-f;
             a1=1-a2;
@@ -21,10 +20,10 @@ for j=1:size(datos,2) % multichannel implementation
     end
 end
 % Normalization????
-for i=1:2
-    h(:,i)=conv(h(:,i),[1,2,3,2,1]);    
+for i=1:size(datos,2) 
+    h(:,i)=conv(h(:,i),[1,2,3,2,1],'same'); % solved by using same
+    h(:,i)=h(:,i)/sum(h(:,i));
 end
-h=h(3:(length(h)-2)); % to get rid of the extra values introduced in the convolution
-h=h/sum(h);
+
 end
 

@@ -20,7 +20,7 @@ s = length(img_T1T2);
 % create image histogram
 
 % h=histo(img_T1T2);
-h = histcounts2(img_T1T2(:,1),img_T1T2(:,2),m_T1T2);
+h = histcounts2(img_T1T2(:,1),img_T1T2(:,2))
 % h(:,1) = (h(:,1)-mi_T1T2(:,1))/m_T1T2(:,1);
 % h(:,2) = (h(:,2)-mi_T1T2(:,2))/m_T1T2(:,2);
 x1 = find(h(:,1)); % indices of non-zero elements of h % just the GSV of the image
