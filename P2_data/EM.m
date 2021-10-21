@@ -20,53 +20,57 @@ s = length(img_T1T2);
 % create image histogram
 
 % h=histo(img_T1T2);
-h = histcounts2(img_T1T2(:,1),img_T1T2(:,2),m_T1T2);
-% h(:,1) = (h(:,1)-mi_T1T2(:,1))/m_T1T2(:,1);
-% h(:,2) = (h(:,2)-mi_T1T2(:,2))/m_T1T2(:,2);
-x1 = find(h(:,1)); % indices of non-zero elements of h % just the GSV of the image
-x2 = find(h(:,2)); % indices of non-zero elements of h % just the GSV of the image
-h1 = h(x1); % we populate h with only its non-zero elements
-h2= h(x2);
-x1 = x1'; h = h'; % from 1x427 becomes 427x1 (traspose)
+h = histcounts2(img_T1T2(:,1),img_T1T2(:,2),m_T1T2, 'Normalization','probability', 'BinMethod','integers');
+% sum(sum(h))
+figure, imshow(h(2:end,2:end),[])
+h = imgaussfilt(h,0.37);
+sum(sum(h))
+figure, imshow(h(2:end,2:end),[])
+
+[x, y] = find(h); % indices of non-zero elements of h % just the GSV of the image
+h = h(x,y); % we populate h with only its non-zero elements
+x = x';
+y = y';
+h = h'; % from 1x427 becomes 427x1 (traspose)
 
 % initiate parameters
-
-mu=(1:k).*m_T1T2/(k+1); % initialization of the mean for each class
-v=ones(1,k)*m_T1T2; % init of variances
-p=ones(1,k)*1/k; % init of proportions
+k_2D = [1:k; 1:k]';
+mu=k_2D.*m_T1T2./(k+1); % initialization of the mean for each class
+v=ones(2,k)'.*m_T1T2; % init of variances
+p=ones(2,k)'.*1./k; % init of proportions
 
 % start process
 
-sml = mean(diff(x1))/1000; % maybe to avoid dividing by 0 later
+sml = [mean(diff(x)), mean(diff(y))]./1000; % quantity to update by
 while(1)
         % Expectation
-        prb = distribution(mu,v,p,x1);
-        scal = sum(prb,2)+eps;
+        prb = distribution(mu,v,p,x,y);
+        scal = sum(prb,3)+eps;
         loglik=sum(h.*log(scal)); %logarithmic likelihood
         
         %Maximization
         for j=1:k
-                pp=h.*prb(:,j)./scal;
-                p(j) = sum(pp); % updating proportions
-                mu(j) = sum(x1.*pp)/p(j); % updating the mean
-                vr = (x1-mu(j));
-                v(j)=sum(vr.*vr.*pp)/p(j)+sml; % updating the mean
+                pp=h.*prb(j,:)./scal;
+                p(j) = sum(pp(:)); % updating proportions
+                mu(j,:) = sum(x.*pp(:))/p(j,:); % updating the mean
+                vr = (x-mu(j));
+                v(j,:)=sum(vr.*vr.*pp)/p(j)+sml; % updating the variance
         end
         p = p + 1e-3;
         p = p/sum(p);
 
         % Exit condition
-        prb = distribution(mu,v,p,x1);
+        prb = distribution(mu,v,p,x);
         scal = sum(prb,2)+eps; % scal = smooth histogram of the distribution of gaussians with which we approximate segmentations
         nloglik=sum(h.*log(scal));                
         if((nloglik-loglik)<0.0001), break; end        
 
         clf
-        plot(x1,h,'DisplayName','original image histo');
+        plot(x,h,'DisplayName','original image histo');
         hold on
-        plot(x1,prb,'g--','DisplayName','aproximated distribution')
+        plot(x,prb,'g--','DisplayName','aproximated distribution')
         hold on
-        plot(x1,sum(prb,2),'r','DisplayName','convolved distributions')
+        plot(x,sum(prb,2),'r','DisplayName','convolved distributions')
         legend
         drawnow
 end
