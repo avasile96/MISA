@@ -1,24 +1,5 @@
 function [mask,mu,v,p]=EMSeg(ima,k)
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-%   Expectation Maximization image segmentation
-%
-%   Input:
-%          ima: grey color image
-%          k: Number of classes 3
-%   Output:
-%          mask: clasification image mask
-%          mu: vector of class means 
-%          v: vector of class variances
-%          p: vector of class proportions   
-%
-%   Example: [mask,mu,v,p]=EMSeg(image,3);
-%
-%   Author: Prof. Jose Vicente Manjon Herrera
-%    Email: jmanjon@fis.upv.es
-%     Date: 02-05-2006
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 % check image
 ima=double(ima);

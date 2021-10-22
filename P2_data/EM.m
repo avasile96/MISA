@@ -28,7 +28,7 @@ sum(sum(h))
 figure, imshow(h(2:end,2:end),[])
 
 [x, y] = find(h); % indices of non-zero elements of h % just the GSV of the image
-h = h(x,y); % we populate h with only its non-zero elements
+h1 = h(x,y); % we populate h with only its non-zero elements
 x = x';
 y = y';
 h = h'; % from 1x427 becomes 427x1 (traspose)

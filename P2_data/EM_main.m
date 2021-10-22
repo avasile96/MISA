@@ -4,12 +4,12 @@ clear; close all;clc;
 %Start time
 tic;
 
-label = load_untouch_nii('D:\Uni\Spain\MISA\MISA\P2_data\1\LabelsForTesting.nii');
+label = load_untouch_nii('C:\Users\usuari\Javascript_API\MISA\P2_data\1\LabelsForTesting.nii');
 label_img = label.img(:,:,24);  % Image for the dice coefficient, with labels
 BW = imbinarize(double(label_img));  % To obtain the mask to get rid of the skull
 
-img_T1 = load_untouch_nii('D:\Uni\Spain\MISA\MISA\P2_data\1\T1.nii');
-img_T2 = load_untouch_nii('D:\Uni\Spain\MISA\MISA\P2_data\1\T2_FLAIR.nii');
+img_T1 = load_untouch_nii('C:\Users\usuari\Javascript_API\MISA\P2_data\1\T1.nii');
+img_T2 = load_untouch_nii('C:\Users\usuari\Javascript_API\MISA\P2_data\1\T2_FLAIR.nii');
 Img_T1 = img_T1.img(:,:,24);
 Img_T2 = img_T2.img(:,:,24);
 %[mask,mu,v,p]=EMSeg(Img,5);  % Original function from link
