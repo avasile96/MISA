@@ -40,7 +40,7 @@ def gmm(x, mean, cov):
 
 
 
-def dice_similarity(Seg_img, GT_img,state):
+def DICE(Seg_img, GT_img,state):
     """   
     Inputs:
         Seg_img (np array): Segmented Image.
@@ -308,9 +308,9 @@ plt.show()
 ######################## EM algorithm ############################
 
 MAX_STEPS = 3
-min_err = 0.001
+min_err = 1e-3 # 0.001
 n_steps = 0
-cls_dist = np.array((pp_CSF, pp_GM , pp_WM))
+label_distribution = np.array((pp_CSF, pp_GM , pp_WM))
 
 fig=plt.figure()
 
@@ -320,18 +320,20 @@ while True:
    gmm_of_CSF= np.apply_along_axis(partial(gmm, mean=mean_CSF, cov=cov_CSF), 1, T1T2_stack_nnz)
    gmm_of_GM= np.apply_along_axis(partial(gmm, mean=mean_GM, cov=cov_GM), 1, T1T2_stack_nnz)
    gmm_of_WM= np.apply_along_axis(partial(gmm, mean=mean_WM, cov=cov_WM), 1, T1T2_stack_nnz)
-
-   Denominator_of_Softsegmentation= (pp_CSF*gmm_of_CSF)+(pp_GM*gmm_of_GM)+(pp_WM*gmm_of_WM)
-
-   weights_CSF=(pp_CSF*gmm_of_CSF)/Denominator_of_Softsegmentation
-   weights_GM=(pp_GM*gmm_of_GM)/Denominator_of_Softsegmentation
-   weights_WM=(pp_WM*gmm_of_WM)/Denominator_of_Softsegmentation
+   
+   ## constructing the weights (formula from slides)
+   pp_x_gmm= (pp_CSF*gmm_of_CSF)+(pp_GM*gmm_of_GM)+(pp_WM*gmm_of_WM) # Denominator
+   
+   # numerators: 1 for each label
+   weights_CSF=(pp_CSF*gmm_of_CSF)/pp_x_gmm
+   weights_GM=(pp_GM*gmm_of_GM)/pp_x_gmm
+   weights_WM=(pp_WM*gmm_of_WM)/pp_x_gmm
 
    weights=np.vstack((weights_CSF,weights_GM,weights_WM))
    weights=np.transpose(weights)
    
-   ####
-   log_b=sum((np.log(sum(weights))))
+   # Metric (old)
+   log_o=sum((np.log(sum(weights))))
    
 ### MAXIMIZATION STEP ###
    Prediction=np.argmax(weights,axis=1)
@@ -342,9 +344,9 @@ while True:
    pp_GM = counts[1] / T1T2_stack_nnz.shape[0]
    pp_WM = counts[2] / T1T2_stack_nnz.shape[0]
 
-   cls_dist_new = np.array((pp_CSF, pp_GM , pp_WM))
+   label_distribution_new = np.array((pp_CSF, pp_GM , pp_WM))
 
-####### calculate new mean and COVARIENCE
+### calculating new means and covariances ###
    mean_CSF= (1/counts[0]) * (weights[:, 0] @ T1T2_stack_nnz)
    mean_GM= (1/counts[1]) * (weights[:, 1] @ T1T2_stack_nnz)
    mean_WM= (1/counts[2]) * (weights[:, 2] @ T1T2_stack_nnz)
@@ -352,69 +354,67 @@ while True:
    cov_GM= (1/counts[1]) * (weights[:, 1] * np.transpose(T1T2_stack_nnz - mean_GM)) @ (T1T2_stack_nnz - mean_GM)
    cov_WM= (1/counts[2]) * (weights[:, 2] * np.transpose(T1T2_stack_nnz - mean_WM)) @ (T1T2_stack_nnz - mean_WM)
 
-# =============================================================================
-#    
-# =============================================================================
+### Generating new GMMs ##
    gmm_of_CSF= np.apply_along_axis(partial(gmm, mean=mean_CSF, cov=cov_CSF), 1, T1T2_stack_nnz)
    gmm_of_GM= np.apply_along_axis(partial(gmm, mean=mean_GM, cov=cov_GM), 1, T1T2_stack_nnz)
    gmm_of_WM= np.apply_along_axis(partial(gmm, mean=mean_WM, cov=cov_WM), 1, T1T2_stack_nnz)
 
-   Denominator_of_Softsegmentation= (pp_CSF*gmm_of_CSF)+(pp_GM*gmm_of_GM)+(pp_WM*gmm_of_WM)
+   pp_x_gmm= (pp_CSF*gmm_of_CSF)+(pp_GM*gmm_of_GM)+(pp_WM*gmm_of_WM)
 
-   weights_CSF=(pp_CSF*gmm_of_CSF)/Denominator_of_Softsegmentation
-   weights_GM=(pp_GM*gmm_of_GM)/Denominator_of_Softsegmentation
-   weights_WM=(pp_WM*gmm_of_WM)/Denominator_of_Softsegmentation
+   weights_CSF=(pp_CSF*gmm_of_CSF)/pp_x_gmm
+   weights_GM=(pp_GM*gmm_of_GM)/pp_x_gmm
+   weights_WM=(pp_WM*gmm_of_WM)/pp_x_gmm
 
    weights=np.vstack((weights_CSF,weights_GM,weights_WM))
    weights=np.transpose(weights)
    
-   ####
+   # New Metric (new)
    log_n=sum((np.log(sum(weights))))
    
    
-   
-   "You can define the Euclidean (or L2) distance between x and y"
-   dist_change = norm(cls_dist_new - cls_dist)
-   log_err=  norm(log_n-log_b)
+   ditribution_difference = norm(label_distribution_new - label_distribution)
+   log_err=  norm(log_n-log_o)
    print("-------------------------------------")
    print("Step %d" % n_steps)
-   print("Distribution change %f" % dist_change)
+   print("Distribution change %f" % ditribution_difference)
    print("log change %f" %  log_err)
    n_steps += 1
-   
-    # check whether we reached desired precision or max number of steps
+
+    # Stopping the WHILE --> stopping criteria:
+    # - max number of iterations has been reached
+    # or
+    # - the desired metric error has been reached
+
    if (n_steps >= MAX_STEPS) or (log_err <= min_err):
-       print("Maximization Done")
+       print("Maximization Completed")
        break
    else:
-        cls_dist = cls_dist_new
+        label_distribution = label_distribution_new
 
-# =============================================================================
-# Recontruction of the image
-# =============================================================================
-shape_original_image=T1_img.shape
-shape_orgibal_image_flatten=T2_flat.shape
-segmented_image=np.zeros(shape_orgibal_image_flatten)
-segmented_image[T1T2_stack_nnz_x_index]=Prediction
-Seg=np.reshape(segmented_image,shape_original_image)
+
+################# Recontructing the image ############################
+
+seg_vector = np.zeros_like(T2_flat)
+seg_vector[T1T2_stack_nnz_x_index] = Prediction
+seg_img = np.reshape(seg_vector,T1_img.shape)
 
 show_slice(label_copy, 20)
 show_slice(labeled_img, 20)
 show_slice(T1_ROI, 20)
-show_slice(Seg, 20)
+show_slice(seg_img, 20)
 
 show_slice(label_copy, 25)
 show_slice(labeled_img, 25)
 show_slice(T1_ROI, 25)
-show_slice(Seg, 25)
+show_slice(seg_img, 25)
 
-####CALCULATING DICE
-dice_CSF, dice_GM, dice_WM = dice_similarity(Seg,labeled_img,"arr")
+################## DICE Coefficient ##############################
+dice_CSF, dice_GM, dice_WM = DICE(seg_img,labeled_img,"arr")
 print("CSF DICE = {}".format(dice_CSF), "GM DICE = {}".format(dice_GM), "WM DICE = {}".format(dice_WM))
 
-##hsv visualization
+# Plotting all labels together in one slice
 plt.figure()
-plt.imshow(Seg[:,:,25].T, cmap='plasma')
+plt.imshow(seg_img[:,:,25].T, cmap='plasma')
 
-###Visualization    
-Dice_and_Visualization_of_one_slice(Seg,labeled_img,"arr",30)
+# Plotting label segmentation along with Ground Truth  
+Dice_and_Visualization_of_one_slice(seg_img,labeled_img,"arr",30)
