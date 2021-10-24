@@ -1,178 +1,196 @@
-import datetime
-from dateutil.relativedelta import relativedelta
-
+from PIL import Image
 import numpy as np
-import scipy.stats
-import math
-import cv2
-from scipy import ndimage
-
-from sklearn import cluster
-from scipy.cluster.vq import kmeans2
-import matplotlib.pyplot as plt
+# load and display an image with Matplotlib
+from matplotlib import image
+from matplotlib import pyplot
+import time
 from skimage import io
 
 
-# input fllename >> output 3d array
-def read_img(filename):
-    img_3d = io.imread(filename)
-
-    small = cv2.resize(img_3d, (0, 0), fx=0.1, fy=0.1)
-    blur = cv2.blur(small, (4, 4))
-    return blur
-
-
-# input 3d array >> output 2d array
-def flatten_img(img_3d):
-    z, x, y = img_3d.shape
-    img_2d = img_3d.reshape(x*y, z)
-    img_2d = np.array(img_2d, dtype = np.float)
-    return img_2d
-
-
-# input 2d array >> output 3d array
-def recover_img(img_2d, vis = False, X=80, Y=80, Z=3):
-    #img_2d = cv2.resize(img_2d, (0, 0), fx=10, fy=10)
-    img_2d = (img_2d * 255).astype(np.uint8)
-    recover_img = img_2d.reshape(X, Y, Z)
-    return recover_img
+# calculate f(e^f) in order to use logsumexp trick and avoid underflow/overflow
+def f_logsumexp(x, mean, var, pi):
+    N = x.shape[0]
+    K = mean.shape[0]
+    trick = np.zeros((N, K))
+    for k in range(K):
+        subtraction = np.subtract(x, mean[k])
+        arg1 = -1.0 / (2 * var[k]) * np.power(subtraction, 2)
+        arg2 = -0.5*np.log(2*np.pi*var[k])
+        arg3 = np.sum(arg2 + arg1, axis=1)  # before sum 1xD -> 1x1
+        arithmitis = np.log(pi[k]) + arg3
+        trick[:, k] = arithmitis
+    # find max of all fk(trick[k]) for each example
+    m = trick.max(axis=1)  # Nx1
+    m = m.reshape((m.shape[0], 1))
+    return trick, m
 
 
-# input 2d array >> output estimated means, stds, pis
-def kmeans_init(img, k):
-    means, labels = kmeans2(img, k)
-    try:
-        means = np.array(means) #mean
-        cov = np.array([np.cov(img[labels == i].T) for i in range(k)]) #covariance
-        ids = set(labels) #labels
-        pis = np.array([np.sum([labels == i]) / len(labels) for i in ids]) # general probability of a pixel belonging to a cluster
-    except Exception as ex:
-        pass
-    return means, cov, pis
+# N -> number of examples
+# K -> number of clusters
+def update_gamma(f, m):
+    f = f-m
+    f = np.exp(f)   # NxK
+    par = np.sum(f, axis=1)  # Nx1
+    par = par.reshape((par.shape[0],1))
+    result = np.divide(f, par)   # NxK
+    return result
 
 
-# E-Step: Update Parameters
-# update the conditional pdf - prob that pixel i given class j
-def update_responsibility(img, means, cov, pis, k):
-    # responsibilities: i th pixels, j th class
-    # pis * gaussian.pdf
-    responsibilities = np.array([pis[j] * scipy.stats.multivariate_normal.pdf(img, mean=means[j], cov=cov[j]) for j in range(k)]).T
-    # normalize for each row
-    norm = np.sum(responsibilities, axis = 1)
-    # convert to column vector
-    norm = np.reshape(norm, (len(norm), 1))
-    responsibilities = responsibilities / norm
-    return responsibilities
+# return matrix with dimensions KxD
+def update_mean(gamma, x):
+    arith = np.dot(np.transpose(gamma), x)   # (KxN)*(NxD)-> KxD
+    paran = np.sum(gamma, axis=0)  # Kx1
+    paran = paran.reshape((paran.shape[0], 1))
+    result = arith/paran    # KxD
+    return result
 
 
-# update pi for each class of Gaussian model
-def update_pis(responsibilities):
-    pis = np.sum(responsibilities, axis = 0) / responsibilities.shape[0]
-    return pis
+# return vector with dimensions 1xK
+def update_variance(gamma, x, mean):
+    D = x.shape[1]
+    K = mean.shape[0]
+    arith = np.zeros((K, 1))
+    for k in range(K):
+        gamma_k = gamma[:, k]
+        gamma_k = gamma_k.reshape((gamma_k.shape[0], 1))
+        subtraction = np.subtract(x, mean[k])   # NxD
+        # ((Nx1).*(NxD)-> NxD->sum row wise -> 1xN -> sum -> 1x1
+        sub = np.sum(np.sum(np.multiply(np.power(subtraction, 2), gamma_k), axis=1))
+        arith[k] = sub
+    paran = D * np.sum(gamma, axis=0)   # Kx1
+    paran = paran.reshape((K, 1))  # Kx1
+    return arith/paran
 
 
-# update means for each class of Gaussian model
-def update_means(img, responsibilities):
-    means = []
-    class_n = responsibilities.shape[1]
-    for j in range(class_n):
-        weight = responsibilities[:, j] / np.sum(responsibilities[:, j])
-        weight = np.reshape(weight, (1, len(weight)))
-        means_j = weight.dot(img)
-        means.append(means_j[0])
-    means = np.array(means)
-    return means
+def update_loglikehood(f, m):
+    f = f - m   # NxK
+    arg1 = np.sum(np.exp(f), axis=1)  # Nx1
+    arg1 = np.log(arg1)   # Nx1
+    arg1 = arg1.reshape((arg1.shape[0], 1))
+    arg2 = arg1+m
+    return np.sum(arg2, axis=0)  # 1x1
 
 
-# update covariance matrix for each class of Gaussian model
-def update_covariance(img, responsibilities, means):
-    cov = []
-    class_n = responsibilities.shape[1]
-    for j in range(class_n):
-        weight = responsibilities[:, j] / np.sum(responsibilities[:, j])
-        weight = np.reshape(weight, (1, len(weight)))
-        # Each pixels have a covariance matrice
-        covs = [np.mat(i - means[j]).T * np.mat(i - means[j]) for i in img]
-        # Weighted sum of covariance matrices
-        cov_j = sum(weight[0][i] * covs[i] for i in range(len(weight[0])))
-        cov.append(cov_j)
-    cov = np.array(cov)
-    return cov
+def init_parameters(D, K):
+    mean = np.random.rand(K, D)
+    var = np.random.uniform(low=0.1, high=1, size=K)    # Kx1
+    val = 1/K
+    pi = np.full(K, val)  # Kx1
+    return mean, var, pi
 
 
-# M-step: choose a label that maximise the likelihood
-def update_labels(responsibilities):
-    labels = np.argmax(responsibilities, axis = 1)
-    return labels
-
-
-def update_loglikelihood(img, means, cov, pis, k):
-    pdf = np.array([pis[j] * scipy.stats.multivariate_normal.pdf(img, mean=means[j], cov=cov[j]) for j in range(k)])
-    log_ll = np.log(np.sum(pdf, axis = 0))
-    log_ll_sum = np.sum(log_ll)
-    return log_ll_sum
-
-
-def EM_cluster(img, k, error = 10e-4, iter_n = 9999):
-    #  init setting
-    cnt = 0
-    likelihood_arr = []
-    # Initialise E-Step by KMeans
-    means, cov, pis = kmeans_init(img, k)
-    likelihood = 0
-    new_likelihood = 2
-    responsibilities = update_responsibility(img, means, cov, pis, k)
-    while (abs(likelihood - new_likelihood) > error) and (cnt != iter_n):
-        start_dt = datetime.datetime.now()
-        cnt += 1
-        likelihood = new_likelihood
-        # M-Step
-        labels = update_labels(responsibilities)
+# pi is not np.pi = 3.14.... is a different variable
+def EM(x, K, tol):
+    # counter in order to count iterations and stop after some in order our program doesn't run for an eternity
+    counter = 1
+    # num of examples(Here pixels)
+    N = x.shape[0]
+    # num of dimensions of each examples(Here RGB canals)
+    D = x.shape[1]
+    # init parameters
+    mean, var, pi = init_parameters(D, K)
+    # logsumexp trick
+    f, m = f_logsumexp(x, mean, var, pi)
+    loglikehood = update_loglikehood(f, m)
+    while counter <= 400:
+        print('Iteration: ', counter)
         # E-step
-        responsibilities = update_responsibility(img, means, cov, pis, k)
-        means = update_means(img, responsibilities)
-        cov = update_covariance(img, responsibilities, means)
-        pis = update_pis(responsibilities)
-        new_likelihood = update_loglikelihood(img, means, cov, pis, k)
-        likelihood_arr.append(new_likelihood)
-        end_dt = datetime.datetime.now()
-        diff = relativedelta(end_dt, start_dt)
-        print("iter: %s, time interval: %s:%s:%s:%s" % (cnt, diff.hours, diff.minutes, diff.seconds, diff.microseconds))
-    likelihood_arr = np.array(likelihood_arr)
-    print('Converge at iteration {}'.format(cnt + 1))
-    return labels, means, cov, pis, likelihood_arr
+        gamma = update_gamma(f, m)  # NxK
+        # M-step
+        # update pi
+        pi = (np.sum(gamma, axis=0))/N
+        # update mean
+        mean = update_mean(gamma, x)
+        # update variance(var)
+        var = update_variance(gamma, x, mean)
+        old_loglikehood = loglikehood
+        # logsumexp trick
+        f, m = f_logsumexp(x, mean, var, pi)
+        loglikehood = update_loglikehood(f, m)
+        # check if algorithm is correct
+        if loglikehood-old_loglikehood < 0:
+            print('Error found in EM algorithm')
+            print('Number of iterations: ', counter)
+            exit()
+        # check if the convergence criterion is met
+        if abs(loglikehood-old_loglikehood) < tol:
+            print('Convergence criterion is met')
+            print('Total iterations: ', counter)
+            return mean, gamma
+        # update 'safety valve' in order to not loop for an eternity
+        counter += 1
+    return mean, gamma
 
 
+def error_reconstruction(x, means_of_data):
+    N = x.shape[0]
+    x = x*255
+    x = x.astype(np.uint8)
+    diff = x-means_of_data
+    sum1 = np.sqrt(np.sum(np.power(diff, 2)))
+    error = sum1/N
+    return error
 
-# FILENAME1 = './img/john-lawrence-sullivan-aw18.jpg'
-FILENAME1 = 'D:\\Uni\\Spain\\MISA\\MISA\\P2_data\\1\\T1.nii'
-FILENAME2 = 'D:\\Uni\\Spain\\MISA\\MISA\\P2_data\\1\\T2_FLAIR.nii'
 
-orig_img_T1 = io.imread(FILENAME1)
-orig_img_T1 = orig_img_T1[20,:,:]
+def reconstruct_image(x, mean, gamma, K):
+    D = mean.shape[1]
+    # denormalize values
+    mean = mean * 255
+    # set data-type uint8 so every data is in set [0,255]
+    mean = mean.astype(np.uint8)
+    max_likelihood = np.argmax(gamma, axis=1)  # 1xN
+    # matrix that has for each example(pixel) the means of dimensions(R,G,B) of k(=cluster) with highest
+    # a  posteriori probability gamma. This matrix is our new data(pixels)
+    means_of_data = np.array([mean[i] for i in max_likelihood])  # NxD
+    # set data-type uint8 so every data is in set [0,255]
+    means_of_data = means_of_data.astype(np.uint8)
+    # calculate error
+    error = error_reconstruction(x, means_of_data)
+    print('Error of reconstruction:', error)
+    means_of_data = means_of_data.reshape((height, width, D))
+    segmented_image = Image.fromarray(means_of_data, mode='F')
+    name = 'Segmented_Images\segmented_image_'+str(K)+'.png'
+    segmented_image.save(name)
 
-orig_img_T2 = io.imread(FILENAME2)
-orig_img_T2 = orig_img_T2[20,:,:]
 
-orig_img = np.zeros([240,240,2])
-orig_img[:,:,0] = orig_img_T1
-orig_img[:,:,1] = orig_img_T2
+def run(x, cluster, tol):
+    for K in cluster:
+        print('------ Cluster: '+str(K)+' ------')
+        start_time = time.time()
+        mean, gamma = EM(x, K, tol)
+        end_time = time.time()
+        em_time = end_time-start_time
+        print("Time of execution of EM for clusters/k = %s  is %s seconds " % (K, em_time))
+        reconstruct_image(x, mean, gamma, K)
+        
+        
+tolerance = 1e-2
+clusters = [3]
+path1 = 'D:\\Uni\\Spain\\MISA\\MISA\\P2_data\\1\\T1.nii'
+path2 = 'D:\\Uni\\Spain\\MISA\\MISA\\P2_data\\1\\T2_Flair.nii'
+# load image as pixel array
+data1 = io.imread(path1)
+data1 = np.asarray(data1,dtype = np.float).T
+data1 = data1[:,:,20]
 
-x, y, z = orig_img.shape
-plt.figure()
-plt.axis("off")
-plt.imshow(orig_img[:,:,1])
-plt.title('Original Image T1');
-plt.show()
+data2 = io.imread(path2)
+data2 = np.asarray(data2,dtype = np.float).T
+data2 = data2[:,:,20]
 
-img = flatten_img(orig_img)
-labels, means, cov, pis, likelihood_arr = EM_cluster(img, 3)
-em_img = recover_img(means[labels], X=x, Y=y, Z=z)
-plt.figure()
-plt.axis("off")
-plt.imshow(em_img)
-plt.title('Image Segmented by EM Algorithm');
-plt.show()
+data = np.zeros([data1.shape[0],data1.shape[1],2])
+data[:,:,0] = data1
+data[:,:,1] = data2
 
-    
-
+# summarize shape of the pixel array
+print("Dimensions of image: ", data.shape)
+(height, width, d) = data.shape
+max_value = np.amax(data)
+# display the array of pixels as an image
+pyplot.imshow(data[:,:,1])
+pyplot.show()
+# N = number of data set (Here height*width of image)
+# D = dimensions of each data (Here R,G,B)
+dataset = data.reshape((height*width, d))    # NxD
+# normalize data
+dataset = dataset/max_value
+run(dataset, clusters, tolerance)
