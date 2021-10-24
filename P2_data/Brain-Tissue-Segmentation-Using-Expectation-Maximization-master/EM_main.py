@@ -4,20 +4,19 @@ Created on Thu Oct  21 06:45:33 2021
 
 @authors: Manuel Ojeda & Alexandru Vasile
 
-This implementation only works for 3 clusters (due to time constrictions)
+This implementation only works for 3 clusters
+but can be modified for more if need be.
 """
 
 import numpy as np
 import nibabel as nib
-import matplotlib.pyplot as plt
-from sklearn.cluster import KMeans
-import os
-import time
 import operator
 from math import sqrt, pi
 from numpy.linalg import inv, det, norm
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+import os
 from functools import partial
-from scipy.spatial.distance import dice
 
 # Showing the 2d slices
 def show_slice(img, slice_nr):
@@ -28,7 +27,7 @@ def show_slice(img, slice_nr):
 def GaussMixModel(x, mean, cov):
     """
     In:
-        x (np array): nxd dimentional, n= number of samples; d= dimention
+        x (np array): nxd dimentional, n= number of samples; d = dimention
         mean (np array): d-dimentional, mean value.
         cov (np array): dxd dimentional covariance matrix.
     Out:
@@ -39,115 +38,98 @@ def GaussMixModel(x, mean, cov):
     return gaus_mix_model
 
 
-
-def DICE(Seg_img, GT_img,state):
+def dice_itself(segmentation, ground_truth):
+        and_gate = np.logical_and(segmentation, ground_truth)
+        return 2. * and_gate.sum() / (segmentation.sum() + ground_truth.sum())
+    
+def DICE(seg_im, ground_truth, imtype):
     """   
     In:
-        Seg_img (np array): Segmented Image.
-        GT_img (np array): Ground Truth Image.
+        seg_im (np array): Segmented Image.
+        ground_truth (np array): Ground Truth Image.
         State: "nifti" if the images are nifti file
                "arr"   if the images are an ndarray
     out:
-        Dice Similarity Coefficient: dice_CSF, dice_GM, dice_WM."""
-        
-    import numpy as np
-    if (state=="nifti"):
-       segmented_data = Seg_img.get_data().copy()
-       groundtruth_data = GT_img.get_data().copy()
-    elif (state=="arr"):
-       segmented_data = Seg_img.copy()
-       groundtruth_data = GT_img.copy()
-    
-    #Calculte DICE
-    def dice_coefficient(SI,GT):
-        #   2 * TP / (FN + (2 * TP) + FP)
-        intersection = np.logical_and(SI, GT)
-        return 2. * intersection.sum() / (SI.sum() + GT.sum())
-    
-    #Dice  for CSF
-    Seg_CSF = (segmented_data == 1) * 1
-    GT_CSF = (groundtruth_data == 1) * 1
-    dice_CSF = dice_coefficient(Seg_CSF, GT_CSF)
-    #Dice  for GM
-    Seg_GM = (segmented_data == 2) * 1
-    GT_GM = (groundtruth_data == 2) * 1
-    dice_GM = dice_coefficient(Seg_GM, GT_GM)
-    #Dice  for WM
-    Seg_WM = (segmented_data == 3) * 1
-    GT_WM = (groundtruth_data == 3) * 1
-    dice_WM = dice_coefficient(Seg_WM, GT_WM)
-    
-    return dice_CSF, dice_GM, dice_WM
+        Dice Similarity Coeff. for each tissue: dice_csf, dice_gm, dice_wm."""
 
-def Dice_and_Visualization_of_one_slice(Seg_img, GT_img,state, slice_nr):
-    """      
-     In:
-        Seg_img (np array): Segmented Image.
-        GT_img (np array): Ground Truth Image.
-        State: "nifti" if the images are nifti file
-               "arr"   if the images are an ndarray
-    out:
-        Dice Similarity Coefficient: dice_CSF, dice_GM, dice_WM.
-        Ploting image:"""
+    if (imtype=="nifti"):
+       seg_data = seg_im.get_data().copy()
+       groundtruth_data = ground_truth.get_data().copy()
+    elif (imtype=="arr"):
+       seg_data = seg_im.copy()
+       groundtruth_data = ground_truth.copy()
     
-    import numpy as np
-    if (state=="nifti"):
-       segmented_data = Seg_img.get_data().copy()
-       groundtruth_data = GT_img.get_data().copy()
-    elif (state=="arr"):
-       segmented_data = Seg_img.copy()
-       groundtruth_data = GT_img.copy()
+    seg_csf = (seg_data == 1) * 1
+    gt_csf = (groundtruth_data == 1) * 1
+    dice_csf = dice_itself(seg_csf, gt_csf)
+
+    seg_gm = (seg_data == 2) * 1
+    gt_gm = (groundtruth_data == 2) * 1
+    dice_gm = dice_itself(seg_gm, gt_gm)
+
+    seg_wm = (seg_data == 3) * 1
+    gt_wm = (groundtruth_data == 3) * 1
+    dice_wm = dice_itself(seg_wm, gt_wm)
     
-    #Calculte DICE
-    def dice_coefficient(SI,GT):
-        #   2 * TP / (FN + (2 * TP) + FP)
-        intersection = np.logical_and(SI, GT)
-        return 2. * intersection.sum() / (SI.sum() + GT.sum())
+    return dice_csf, dice_gm, dice_wm
+
+def Slice_and_Dice(seg_im, ground_truth, imtype, slice_nr):
+    """
+    Computes the DICE coefficients for the classes of just one slice and then plots
+    said slice.
+    """
+
+    if (imtype=="nifti"):
+       seg_data = seg_im.get_data().copy()
+       groundtruth_data = ground_truth.get_data().copy()
+    elif (imtype=="arr"):
+       seg_data = seg_im.copy()
+       groundtruth_data = ground_truth.copy()
     
-    #Dice  for CSF
-    Seg_CSF = (segmented_data == 1) * 1
-    GT_CSF = (groundtruth_data == 1) * 1
-    dice_CSF = dice_coefficient(Seg_CSF, GT_CSF)
-    #Dice  for GM
-    Seg_GM = (segmented_data == 2) * 1
-    GT_GM = (groundtruth_data == 2) * 1
-    dice_GM = dice_coefficient(Seg_GM, GT_GM)
-    #Dice  for WM
-    Seg_WM = (segmented_data == 3) * 1
-    GT_WM = (groundtruth_data == 3) * 1
-    dice_WM = dice_coefficient(Seg_WM, GT_WM)
+
+    seg_csf = (seg_data == 1) * 1
+    gt_csf = (groundtruth_data == 1) * 1
+    dice_csf = dice_itself(seg_csf, gt_csf)
+
+    seg_gm = (seg_data == 2) * 1
+    gt_gm = (groundtruth_data == 2) * 1
+    dice_gm = dice_itself(seg_gm, gt_gm)
+
+    seg_wm = (seg_data == 3) * 1
+    gt_wm = (groundtruth_data == 3) * 1
+    dice_wm = dice_itself(seg_wm, gt_wm)
     
-    print("CSF DICE = {}".format(dice_CSF), "GM DICE = {}".format(dice_GM), "WM DICE = {}".format(dice_WM))
+    print("CSF DICE = {}".format(dice_csf), "GM DICE = {}".format(dice_gm), "WM DICE = {}".format(dice_wm))
     
     fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2,3,figsize=(12,8))
     
     ax1.set_title("WM Segmentation of slice no. {}".format(slice_nr))
-    img1 = ax1.imshow(Seg_WM[:,:,slice_nr].T, cmap = "gray")
+    ax1.imshow(seg_wm[:,:,slice_nr].T, cmap = "gray")
     ax1.axes.get_xaxis().set_visible(False)
     ax1.axes.get_yaxis().set_visible(False)
     
     ax2.set_title("CSF Segmentation of slice no. {}".format(slice_nr))
-    img2 = ax2.imshow(Seg_CSF[:,:,slice_nr].T, cmap = "gray")
+    ax2.imshow(seg_csf[:,:,slice_nr].T, cmap = "gray")
     ax2.axes.get_xaxis().set_visible(False)
     ax2.axes.get_yaxis().set_visible(False)
 
-    ax3.set_title("GM Segmentation of sliceno. {}".format(slice_nr))
-    img3 = ax3.imshow(Seg_GM[:,:,slice_nr].T, cmap = "gray")
+    ax3.set_title("GM Segmentation of slice no. {}".format(slice_nr))
+    ax3.imshow(seg_gm[:,:,slice_nr].T, cmap = "gray")
     ax3.axes.get_xaxis().set_visible(False)
     ax3.axes.get_yaxis().set_visible(False)
     
     ax4.set_title("WM Ground Truth of slice no. {}".format(slice_nr))
-    img4 = ax4.imshow(GT_WM[:,:,slice_nr].T, cmap = "gray")
+    ax4.imshow(gt_wm[:,:,slice_nr].T, cmap = "gray")
     ax4.axes.get_xaxis().set_visible(False)
     ax4.axes.get_yaxis().set_visible(False)
 
     ax5.set_title("CSF Segmentation of slice no. {}".format(slice_nr))
-    img5 = ax5.imshow(GT_CSF[:,:,slice_nr].T, cmap = "gray")
+    ax5.imshow(gt_csf[:,:,slice_nr].T, cmap = "gray")
     ax5.axes.get_xaxis().set_visible(False)
     ax5.axes.get_yaxis().set_visible(False)
 
     ax6.set_title("GM Ground Truth of slice no. {}".format(slice_nr))
-    img6 = ax6.imshow(GT_GM[:,:,slice_nr].T, cmap = "gray")
+    ax6.imshow(gt_gm[:,:,slice_nr].T, cmap = "gray")
     ax6.axes.get_xaxis().set_visible(False)
     ax6.axes.get_yaxis().set_visible(False)
     
@@ -159,12 +141,12 @@ slice_nr = 20
 ############## Loading data ###################
 brain_data_path ="./P2_data/2" # indicating data location
 
-# Load T1_image
+# Load T1 image
 T1_data = os.path.join(brain_data_path, 'T1.nii')
 T1_data = nib.load(T1_data)
 T1_img=T1_data.get_fdata()
 
-# Load T2_Flair_image
+# Load T2_Flair image
 T2_data = os.path.join(brain_data_path, 'T2_FLAIR.nii')
 T2_data = nib.load(T2_data)
 T2_img = T2_data.get_fdata()
@@ -175,9 +157,9 @@ labeled_data = nib.load(labeled_data)
 labeled_img = labeled_data.get_fdata()
 
 # Ploting images  
-show_slice(labeled_img, 24)
-show_slice(T1_img, 24)
-show_slice(T2_img, 24)
+show_slice(labeled_img, slice_nr)
+show_slice(T1_img, slice_nr)
+show_slice(T2_img, slice_nr)
 
 
 ### Selecting the Region of Interest (ROI) ###
@@ -388,30 +370,31 @@ while True:
    else:
         label_distribution = label_distribution_new
 
-
 ################# Recontructing the image ############################
 
 seg_vector = np.zeros_like(T2_flat)
 seg_vector[T1T2_stack_nnz_x_index] = Prediction
 seg_img = np.reshape(seg_vector,T1_img.shape)
 
-show_slice(label_copy, slice_nr)
-show_slice(labeled_img, slice_nr)
-show_slice(T1_ROI, slice_nr)
-show_slice(seg_img, slice_nr)
+################ PLOTTING #####################
 
 show_slice(label_copy, slice_nr)
 show_slice(labeled_img, slice_nr)
 show_slice(T1_ROI, slice_nr)
 show_slice(seg_img, slice_nr)
 
-################## DICE Coefficient ##############################
-dice_CSF, dice_GM, dice_WM = DICE(seg_img,labeled_img,"arr")
-print("CSF DICE = {}".format(dice_CSF), "GM DICE = {}".format(dice_GM), "WM DICE = {}".format(dice_WM))
+show_slice(label_copy, slice_nr)
+show_slice(labeled_img, slice_nr)
+show_slice(T1_ROI, slice_nr)
+show_slice(seg_img, slice_nr)
 
 # Plotting all labels together in one slice
 plt.figure()
 plt.imshow(seg_img[:,:,slice_nr].T, cmap='plasma')
 
 # Plotting label segmentation along with Ground Truth  
-Dice_and_Visualization_of_one_slice(seg_img,labeled_img,"arr",slice_nr)
+Slice_and_Dice(seg_img,labeled_img,"arr",slice_nr)
+
+################## DICE Coefficient ##############################
+dice_csf, dice_gm, dice_wm = DICE(seg_img,labeled_img,"arr")
+print("CSF DICE = {}".format(dice_csf), "GM DICE = {}".format(dice_gm), "WM DICE = {}".format(dice_wm))
