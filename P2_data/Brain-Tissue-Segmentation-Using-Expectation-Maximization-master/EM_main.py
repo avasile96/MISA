@@ -25,7 +25,7 @@ def show_slice(img, slice_nr):
     plt.imshow(img[:,:,slice_nr].T, cmap='gray')
 
 
-def gmm(x, mean, cov):
+def GaussMixModel(x, mean, cov):
     """
     In:
         x (np array): nxd dimentional, n= number of samples; d= dimention
@@ -42,12 +42,12 @@ def gmm(x, mean, cov):
 
 def DICE(Seg_img, GT_img,state):
     """   
-    Inputs:
+    In:
         Seg_img (np array): Segmented Image.
         GT_img (np array): Ground Truth Image.
         State: "nifti" if the images are nifti file
                "arr"   if the images are an ndarray
-    output:
+    out:
         Dice Similarity Coefficient: dice_CSF, dice_GM, dice_WM."""
         
     import numpy as np
@@ -79,17 +79,14 @@ def DICE(Seg_img, GT_img,state):
     
     return dice_CSF, dice_GM, dice_WM
 
-def Dice_and_Visualization_of_one_slice(Seg_img, GT_img,state,number_of_slice):
-     
-    """Example Use: Dice_and_Visualization_of_one_slice(Seg,Label_img,"arr",30)"""
-    
+def Dice_and_Visualization_of_one_slice(Seg_img, GT_img,state, slice_nr):
     """      
-     Inputs:
+     In:
         Seg_img (np array): Segmented Image.
         GT_img (np array): Ground Truth Image.
         State: "nifti" if the images are nifti file
                "arr"   if the images are an ndarray
-    output:
+    out:
         Dice Similarity Coefficient: dice_CSF, dice_GM, dice_WM.
         Ploting image:"""
     
@@ -124,33 +121,33 @@ def Dice_and_Visualization_of_one_slice(Seg_img, GT_img,state,number_of_slice):
     
     fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2,3,figsize=(12,8))
     
-    ax1.set_title("WM Segmentation of slice #{}".format(number_of_slice))
-    img1 = ax1.imshow(Seg_WM[:,:,30], cmap = "gray")
+    ax1.set_title("WM Segmentation of slice no. {}".format(slice_nr))
+    img1 = ax1.imshow(Seg_WM[:,:,slice_nr].T, cmap = "gray")
     ax1.axes.get_xaxis().set_visible(False)
     ax1.axes.get_yaxis().set_visible(False)
     
-    ax2.set_title("CSF Segmentation of slice #{}".format(number_of_slice))
-    img2 = ax2.imshow(Seg_CSF[:,:,number_of_slice], cmap = "gray")
+    ax2.set_title("CSF Segmentation of slice no. {}".format(slice_nr))
+    img2 = ax2.imshow(Seg_CSF[:,:,slice_nr].T, cmap = "gray")
     ax2.axes.get_xaxis().set_visible(False)
     ax2.axes.get_yaxis().set_visible(False)
 
-    ax3.set_title("GM Segmentation of slice#{}".format(number_of_slice))
-    img3 = ax3.imshow(Seg_GM[:,:,number_of_slice], cmap = "gray")
+    ax3.set_title("GM Segmentation of sliceno. {}".format(slice_nr))
+    img3 = ax3.imshow(Seg_GM[:,:,slice_nr].T, cmap = "gray")
     ax3.axes.get_xaxis().set_visible(False)
     ax3.axes.get_yaxis().set_visible(False)
     
-    ax4.set_title("WM Ground Truth of slice #{}".format(number_of_slice))
-    img4 = ax4.imshow(GT_WM[:,:,number_of_slice], cmap = "gray")
+    ax4.set_title("WM Ground Truth of slice no. {}".format(slice_nr))
+    img4 = ax4.imshow(GT_WM[:,:,slice_nr].T, cmap = "gray")
     ax4.axes.get_xaxis().set_visible(False)
     ax4.axes.get_yaxis().set_visible(False)
 
-    ax5.set_title("CSF Segmentation of slice #{}".format(number_of_slice))
-    img5 = ax5.imshow(GT_CSF[:,:,number_of_slice], cmap = "gray")
+    ax5.set_title("CSF Segmentation of slice no. {}".format(slice_nr))
+    img5 = ax5.imshow(GT_CSF[:,:,slice_nr].T, cmap = "gray")
     ax5.axes.get_xaxis().set_visible(False)
     ax5.axes.get_yaxis().set_visible(False)
 
-    ax6.set_title("GM Ground Truth of slice #{}".format(number_of_slice))
-    img6 = ax6.imshow(GT_GM[:,:,number_of_slice], cmap = "gray")
+    ax6.set_title("GM Ground Truth of slice no. {}".format(slice_nr))
+    img6 = ax6.imshow(GT_GM[:,:,slice_nr].T, cmap = "gray")
     ax6.axes.get_xaxis().set_visible(False)
     ax6.axes.get_yaxis().set_visible(False)
     
@@ -158,7 +155,7 @@ def Dice_and_Visualization_of_one_slice(Seg_img, GT_img,state,number_of_slice):
     plt.show()
     
 ####################### MAIN #############################
-
+slice_nr = 20
 ############## Loading data ###################
 brain_data_path ="./P2_data/2" # indicating data location
 
@@ -201,10 +198,10 @@ T1_ROI = T1_ROI_data.get_fdata()
 T2_ROI_data = nib.Nifti1Image(T2_masked, T2_data.affine, T2_data.header)
 T2_ROI = T2_ROI_data.get_fdata()
 # imshowing the slices
-show_slice(label_copy, 20)
-show_slice(labeled_img, 20)
-show_slice(T1_ROI, 20)
-show_slice(T2_ROI, 20)
+show_slice(label_copy, slice_nr)
+show_slice(labeled_img, slice_nr)
+show_slice(T1_ROI, slice_nr)
+show_slice(T2_ROI, slice_nr)
 
 # Vectorizing the images
 T1_flat = T1_ROI.copy().flatten()
@@ -317,17 +314,17 @@ fig=plt.figure()
 while True:
     
 ### EXPECTATION STEP ###
-   gmm_of_CSF= np.apply_along_axis(partial(gmm, mean=mean_CSF, cov=cov_CSF), 1, T1T2_stack_nnz)
-   gmm_of_GM= np.apply_along_axis(partial(gmm, mean=mean_GM, cov=cov_GM), 1, T1T2_stack_nnz)
-   gmm_of_WM= np.apply_along_axis(partial(gmm, mean=mean_WM, cov=cov_WM), 1, T1T2_stack_nnz)
+   CSF_gmm= np.apply_along_axis(partial(GaussMixModel, mean=mean_CSF, cov=cov_CSF), 1, T1T2_stack_nnz)
+   GM_gmm= np.apply_along_axis(partial(GaussMixModel, mean=mean_GM, cov=cov_GM), 1, T1T2_stack_nnz)
+   WM_gmm= np.apply_along_axis(partial(GaussMixModel, mean=mean_WM, cov=cov_WM), 1, T1T2_stack_nnz)
    
    ## constructing the weights (formula from slides)
-   pp_x_gmm= (pp_CSF*gmm_of_CSF)+(pp_GM*gmm_of_GM)+(pp_WM*gmm_of_WM) # Denominator
+   pp_x_gmm= (pp_CSF*CSF_gmm)+(pp_GM*GM_gmm)+(pp_WM*WM_gmm) # Denominator
    
    # numerators: 1 for each label
-   weights_CSF=(pp_CSF*gmm_of_CSF)/pp_x_gmm
-   weights_GM=(pp_GM*gmm_of_GM)/pp_x_gmm
-   weights_WM=(pp_WM*gmm_of_WM)/pp_x_gmm
+   weights_CSF=(pp_CSF*CSF_gmm)/pp_x_gmm
+   weights_GM=(pp_GM*GM_gmm)/pp_x_gmm
+   weights_WM=(pp_WM*WM_gmm)/pp_x_gmm
 
    weights=np.vstack((weights_CSF,weights_GM,weights_WM))
    weights=np.transpose(weights)
@@ -355,15 +352,15 @@ while True:
    cov_WM= (1/counts[2]) * (weights[:, 2] * np.transpose(T1T2_stack_nnz - mean_WM)) @ (T1T2_stack_nnz - mean_WM)
 
 ### Generating new GMMs ##
-   gmm_of_CSF= np.apply_along_axis(partial(gmm, mean=mean_CSF, cov=cov_CSF), 1, T1T2_stack_nnz)
-   gmm_of_GM= np.apply_along_axis(partial(gmm, mean=mean_GM, cov=cov_GM), 1, T1T2_stack_nnz)
-   gmm_of_WM= np.apply_along_axis(partial(gmm, mean=mean_WM, cov=cov_WM), 1, T1T2_stack_nnz)
+   CSF_gmm= np.apply_along_axis(partial(GaussMixModel, mean=mean_CSF, cov=cov_CSF), 1, T1T2_stack_nnz)
+   GM_gmm= np.apply_along_axis(partial(GaussMixModel, mean=mean_GM, cov=cov_GM), 1, T1T2_stack_nnz)
+   WM_gmm= np.apply_along_axis(partial(GaussMixModel, mean=mean_WM, cov=cov_WM), 1, T1T2_stack_nnz)
 
-   pp_x_gmm= (pp_CSF*gmm_of_CSF)+(pp_GM*gmm_of_GM)+(pp_WM*gmm_of_WM)
+   pp_x_gmm= (pp_CSF*CSF_gmm)+(pp_GM*GM_gmm)+(pp_WM*WM_gmm)
 
-   weights_CSF=(pp_CSF*gmm_of_CSF)/pp_x_gmm
-   weights_GM=(pp_GM*gmm_of_GM)/pp_x_gmm
-   weights_WM=(pp_WM*gmm_of_WM)/pp_x_gmm
+   weights_CSF=(pp_CSF*CSF_gmm)/pp_x_gmm
+   weights_GM=(pp_GM*GM_gmm)/pp_x_gmm
+   weights_WM=(pp_WM*WM_gmm)/pp_x_gmm
 
    weights=np.vstack((weights_CSF,weights_GM,weights_WM))
    weights=np.transpose(weights)
@@ -398,15 +395,15 @@ seg_vector = np.zeros_like(T2_flat)
 seg_vector[T1T2_stack_nnz_x_index] = Prediction
 seg_img = np.reshape(seg_vector,T1_img.shape)
 
-show_slice(label_copy, 20)
-show_slice(labeled_img, 20)
-show_slice(T1_ROI, 20)
-show_slice(seg_img, 20)
+show_slice(label_copy, slice_nr)
+show_slice(labeled_img, slice_nr)
+show_slice(T1_ROI, slice_nr)
+show_slice(seg_img, slice_nr)
 
-show_slice(label_copy, 25)
-show_slice(labeled_img, 25)
-show_slice(T1_ROI, 25)
-show_slice(seg_img, 25)
+show_slice(label_copy, slice_nr)
+show_slice(labeled_img, slice_nr)
+show_slice(T1_ROI, slice_nr)
+show_slice(seg_img, slice_nr)
 
 ################## DICE Coefficient ##############################
 dice_CSF, dice_GM, dice_WM = DICE(seg_img,labeled_img,"arr")
@@ -414,7 +411,7 @@ print("CSF DICE = {}".format(dice_CSF), "GM DICE = {}".format(dice_GM), "WM DICE
 
 # Plotting all labels together in one slice
 plt.figure()
-plt.imshow(seg_img[:,:,25].T, cmap='plasma')
+plt.imshow(seg_img[:,:,slice_nr].T, cmap='plasma')
 
 # Plotting label segmentation along with Ground Truth  
-Dice_and_Visualization_of_one_slice(seg_img,labeled_img,"arr",30)
+Dice_and_Visualization_of_one_slice(seg_img,labeled_img,"arr",slice_nr)
