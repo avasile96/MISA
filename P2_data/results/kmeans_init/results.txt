@@ -1,0 +1,23 @@
+kmeans initialization
+
+Step 0
+Distribution change 0.020989
+log change 0.002828
+Step 1
+Distribution change 0.007986
+log change 0.001026
+Step 2
+Distribution change 0.002344
+log change 0.000581
+
+Maximization Completed
+
+TOTAL DICE:
+CSF DICE = 0.846288562575778 GM DICE = 0.6951920341394026 WM DICE = 0.691638608305275
+
+=========================================================
+
+SLICE DICE:
+CSF DICE (slice no. 20) = 0.8596272344790779 GM DICE (slice no. 20)= 0.6767286661930824 WM DICE = (slice no. 20)0.7106419624878104
+Initialization type = kmeans; Time elapsed = 422.73s
+
