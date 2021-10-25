@@ -1,0 +1,22 @@
+random initialization
+
+Step 0
+Distribution change 0.456303
+log change 1.896099
+Step 1
+Distribution change 0.198226
+log change 7.341151
+Step 2
+Distribution change 0.157408
+log change 3.218475
+
+Maximization Completed
+
+TOTAL DICE:
+CSF DICE = 0.07379902529589231 GM DICE = 0.0 WM DICE = 0.45703250724171224
+
+=========================================================
+
+SLICE DICE:
+CSF DICE (slice no. 20) = 0.06478165781441515 GM DICE (slice no. 20)= 0.0 WM DICE = (slice no. 20)0.4003189226354372
+Initialization type = random; Time elapsed = 456.10s

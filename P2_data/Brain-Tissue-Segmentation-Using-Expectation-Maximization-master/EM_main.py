@@ -91,15 +91,15 @@ def Slice_and_Dice(seg_im, ground_truth, imtype, slice_nr):
 
     seg_csf = (seg_data == 1) * 1
     gt_csf = (groundtruth_data == 1) * 1
-    dice_csf = dice_itself(seg_csf, gt_csf)
+    dice_csf = dice_itself(seg_csf[:,:,slice_nr], gt_csf[:,:,slice_nr])
 
     seg_gm = (seg_data == 2) * 1
     gt_gm = (groundtruth_data == 2) * 1
-    dice_gm = dice_itself(seg_gm, gt_gm)
+    dice_gm = dice_itself(seg_gm[:,:,slice_nr], gt_gm[:,:,slice_nr])
 
     seg_wm = (seg_data == 3) * 1
     gt_wm = (groundtruth_data == 3) * 1
-    dice_wm = dice_itself(seg_wm, gt_wm)
+    dice_wm = dice_itself(seg_wm[:,:,slice_nr], gt_wm[:,:,slice_nr])
     
     print("CSF DICE = {}".format(dice_csf), "GM DICE = {}".format(dice_gm), "WM DICE = {}".format(dice_wm))
     
@@ -317,8 +317,8 @@ T1T2_stack_nnz = T1T2_linear_stack[T1T2_stack_nnz_x_index] # selecting only nonz
 t0 = time.time()
 
 # Initialization (random or kmeans)
-init_type = 'random'
-pp_CSF, pp_GM, pp_WM, mean_CSF, cov_CSF, mean_GM, cov_GM, mean_WM, cov_WM = init(init_type) # kmeans
+init_type = 'kmeans'
+pp_CSF, pp_GM, pp_WM, mean_CSF, cov_CSF, mean_GM, cov_GM, mean_WM, cov_WM = init(init_type) #kmeans #random
 
 ######################## EM algorithm ############################
 MAX_STEPS = 3
@@ -413,15 +413,10 @@ seg_img = np.reshape(seg_vector,T1_img.shape)
 
 ################ PLOTTING #####################
 
-show_slice(label_copy, slice_nr)
-show_slice(labeled_img, slice_nr)
-show_slice(T1_ROI, slice_nr)
-show_slice(seg_img, slice_nr)
-
-show_slice(label_copy, slice_nr)
-show_slice(labeled_img, slice_nr)
-show_slice(T1_ROI, slice_nr)
-show_slice(seg_img, slice_nr)
+show_slice(label_copy, slice_nr) # ROI
+show_slice(labeled_img, slice_nr) # og labels
+show_slice(T1_ROI, slice_nr) # ROI*T1
+show_slice(seg_img, slice_nr) # our segmentation
 
 # Plotting all labels together in one slice
 plt.figure()
@@ -429,11 +424,12 @@ plt.imshow(seg_img[:,:,slice_nr].T, cmap='plasma')
 
 # Plotting label segmentation along with Ground Truth  
 Slice_and_Dice(seg_img,labeled_img,"arr",slice_nr)
+print("=========================================================")
 
 ################## DICE Coefficient ##############################
 dice_csf, dice_gm, dice_wm = DICE(seg_img,labeled_img,"arr")
-print("CSF DICE = {}".format(dice_csf), "GM DICE = {}".format(dice_gm), "WM DICE = {}".format(dice_wm))
+print("CSF DICE (slice no. {}) = {}".format(slice_nr, dice_csf), "GM DICE (slice no. {})= {}".format(slice_nr, dice_gm), "WM DICE = (slice no. {}){}".format(slice_nr, dice_wm))
 
 ################## Time Elapsed ##############################
 total = t1-t0
-print("Initialization type = {}".format(init_type), "Time elapsed = {}".format(dice_gm))
+print("Initialization type = {};".format(init_type), "Time elapsed = {}".format(total))
