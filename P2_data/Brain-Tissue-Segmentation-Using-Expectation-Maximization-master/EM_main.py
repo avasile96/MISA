@@ -17,6 +17,8 @@ import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 import os
 from functools import partial
+import time
+
 
 # Showing the 2d slices
 def show_slice(img, slice_nr):
@@ -136,6 +138,121 @@ def Slice_and_Dice(seg_im, ground_truth, imtype, slice_nr):
     plt.tight_layout()
     plt.show()
     
+def init(init_type):
+    """
+    In: init_type: 'kmeans', 'random'
+    Out:
+          Initial parameters for the EM algorithm
+    """ 
+    if (init_type =='kmeans'):
+        ### Kmeans Initialization
+        """
+        In: n_clusters = Number of cluster
+               K-means++: Centroid initialization for faster convergence
+               random_state: For reproducibility
+                             42 in this case because it is the answer to everything!
+        Out:
+              Kmeans_predict = cluster segmentation labels
+              Centroid = centroids determined by the clustering
+        """ 
+        kmeans=KMeans(n_clusters=3,  init='k-means++',random_state=42,).fit(T1T2_stack_nnz)
+        Kmeans_pred=kmeans.predict(T1T2_stack_nnz)
+        centroids = kmeans.cluster_centers_
+        
+        """
+            Making the Kmeans output the same vlaues for the outputted labels.
+            Without this, it will give seemengly random numbers every time.
+        """
+        
+        # finding the minimum and maximum values of labels
+        y_centroids = centroids[:,0]
+        # min and max label indices and their values
+        min_index, min_value = min(enumerate(y_centroids), key=operator.itemgetter(1))
+        max_index, max_value = max(enumerate(y_centroids), key=operator.itemgetter(1))
+        
+        # creating an empty variable for the new clustering arrangement
+        
+        Kmeans_pred_new=np.zeros(len(Kmeans_pred))
+        centroid_new=np.zeros(centroids.shape)
+        
+        # centrioid arrangement
+        centroid_new[0]=centroids[min_index]
+        centroid_new[2]=centroids[max_index]
+        # rearranging the centrioid
+        if (min_index+max_index==1):
+           centroid_new[1]=centroids[2]
+        elif (min_index+max_index==2):
+           centroid_new[1]=centroids[1]
+        elif (min_index+max_index==3):
+           centroid_new[1]=centroids[0]
+        
+        # new labels
+        for i in range(0,len(Kmeans_pred)):
+            if (Kmeans_pred[i]==min_index):
+                Kmeans_pred_new[i]=0
+            elif(Kmeans_pred[i]==max_index):
+                Kmeans_pred_new[i]=2
+            else:
+                Kmeans_pred_new[i]=1
+        
+        Kmeans_pred_new += 1 # just to start with 1 instead of 0
+        
+        # getting the label region images  
+        
+        """
+           argwhere(Kmeans_pred_new == 1)[:,0]: Go through the predictions of the 
+           kmeans and get corresponding indices
+        """    
+        CSF_stack = T1T2_stack_nnz[np.argwhere(Kmeans_pred_new == 1)[:,0],:]
+        GM_stack = T1T2_stack_nnz[np.argwhere(Kmeans_pred_new== 2)[:,0],:]
+        WM_stack = T1T2_stack_nnz[np.argwhere(Kmeans_pred_new== 3)[:,0],:]
+        
+        """
+            np.mean(X, axis = 0): Compute the mean along colums. means: along features, mean of feature.
+        """ 
+        
+        # computing means and coveriences of each region
+        mean_CSF = np.mean(CSF_stack, axis = 0)
+        cov_CSF = np.cov(CSF_stack, rowvar = False)
+        mean_GM = np.mean(GM_stack, axis = 0)
+        cov_GM = np.cov(GM_stack, rowvar = False)
+        mean_WM = np.mean(WM_stack , axis = 0)
+        cov_WM = np.cov(WM_stack , rowvar = False)
+        
+        # Prior Probabibilities (How likely are we to encounter that type of tissue)
+        pp_CSF = CSF_stack.shape[0] / T1T2_stack_nnz.shape[0]
+        pp_GM = GM_stack.shape[0] / T1T2_stack_nnz.shape[0]
+        pp_WM = WM_stack.shape[0] / T1T2_stack_nnz.shape[0]
+        
+        ##Ploting the cluster distributin    
+        plt.figure()
+        plt.scatter(T1T2_stack_nnz[:, 0], T1T2_stack_nnz[:, 1], c=Kmeans_pred_new, s=25)
+        plt.scatter(centroid_new[:, 0], centroid_new[:, 1], marker='x', s=200, linewidths=3, color='w', zorder=10)
+        plt.show()
+    else:
+        ### Random Initialization
+        rand_init_vect = np.random.randint(1,4,T1T2_stack_nnz.shape[0])
+        
+        # getting the label region images
+        CSF_stack = T1T2_stack_nnz[np.argwhere(rand_init_vect == 1)[:,0],:]
+        GM_stack = T1T2_stack_nnz[np.argwhere(rand_init_vect== 2)[:,0],:]
+        WM_stack = T1T2_stack_nnz[np.argwhere(rand_init_vect== 3)[:,0],:]
+        
+        # computing means and coveriences of each region
+        mean_CSF = np.mean(CSF_stack, axis = 0)
+        cov_CSF = np.cov(CSF_stack, rowvar = False)
+        mean_GM = np.mean(GM_stack, axis = 0)
+        cov_GM = np.cov(GM_stack, rowvar = False)
+        mean_WM = np.mean(WM_stack , axis = 0)
+        cov_WM = np.cov(WM_stack , rowvar = False)
+        
+        # Prior_Probabibilities
+        pp_CSF = CSF_stack.shape[0] / T1T2_stack_nnz.shape[0]
+        pp_GM = GM_stack.shape[0] / T1T2_stack_nnz.shape[0]
+        pp_WM = WM_stack.shape[0] / T1T2_stack_nnz.shape[0]
+        
+    return pp_CSF, pp_GM, pp_WM, mean_CSF, cov_CSF, mean_GM, cov_GM, mean_WM, cov_WM
+    
 ####################### MAIN #############################
 slice_nr = 20
 ############## Loading data ###################
@@ -197,95 +314,13 @@ enumerate:It allows us to loop over something and have an automatic counter
 T1T2_stack_nnz_x_index = [i for i, x in enumerate(T1T2_linear_stack) if x.any()] # indices of nnz elements
 T1T2_stack_nnz = T1T2_linear_stack[T1T2_stack_nnz_x_index] # selecting only nonzero elements
 
-#################### Initialization ######################
+t0 = time.time()
 
-######### Kmeans Initialization ###############
-"""
-In: n_clusters = Number of cluster
-       K-means++: Centroid initialization for faster convergence
-       random_state: For reproducibility
-                     42 in this case because it is the answer to everything!
-Out:
-      Kmeans_predict = cluster segmentation labels
-      Centroid = centroids determined by the clustering
-""" 
-kmeans=KMeans(n_clusters=3,  init='k-means++',random_state=42,).fit(T1T2_stack_nnz)
-Kmeans_pred=kmeans.predict(T1T2_stack_nnz)
-centroids = kmeans.cluster_centers_
-
-"""
-    Making the Kmeans output the same vlaues for the outputted labels.
-    Without this, it will give seemengly random numbers every time.
-"""
-
-# finding the minimum and maximum values of labels
-y_centroids = centroids[:,0]
-# min and max label indices and their values
-min_index, min_value = min(enumerate(y_centroids), key=operator.itemgetter(1))
-max_index, max_value = max(enumerate(y_centroids), key=operator.itemgetter(1))
-
-# creating an empty variable for the new clustering arrangement
-
-Kmeans_pred_new=np.zeros(len(Kmeans_pred))
-centroid_new=np.zeros(centroids.shape)
-
-# centrioid arrangement
-centroid_new[0]=centroids[min_index]
-centroid_new[2]=centroids[max_index]
-# rearranging the centrioid
-if (min_index+max_index==1):
-   centroid_new[1]=centroids[2]
-elif (min_index+max_index==2):
-   centroid_new[1]=centroids[1]
-elif (min_index+max_index==3):
-   centroid_new[1]=centroids[0]
-
-# new labels
-for i in range(0,len(Kmeans_pred)):
-    if (Kmeans_pred[i]==min_index):
-        Kmeans_pred_new[i]=0
-    elif(Kmeans_pred[i]==max_index):
-        Kmeans_pred_new[i]=2
-    else:
-        Kmeans_pred_new[i]=1
-
-Kmeans_pred_new += 1 # just to start with 1 instead of 0
-
-# getting the label region images  
-
-"""
-   argwhere(Kmeans_pred_new == 1)[:,0]: Go through the predictions of the 
-   kmeans and get corresponding indices
-"""    
-CSF_stack = T1T2_stack_nnz[np.argwhere(Kmeans_pred_new == 1)[:,0],:]
-GM_stack = T1T2_stack_nnz[np.argwhere(Kmeans_pred_new== 2)[:,0],:]
-WM_stack = T1T2_stack_nnz[np.argwhere(Kmeans_pred_new== 3)[:,0],:]
-
-"""
-    np.mean(X, axis = 0): Compute the mean along colums. means: along features, mean of feature.
-""" 
-# computing means and coveriences of each region
-mean_CSF = np.mean(CSF_stack, axis = 0)
-cov_CSF = np.cov(CSF_stack, rowvar = False)
-mean_GM = np.mean(GM_stack, axis = 0)
-cov_GM = np.cov(GM_stack, rowvar = False)
-mean_WM = np.mean(WM_stack , axis = 0)
-cov_WM = np.cov(WM_stack , rowvar = False)
-
-# Prior_Probabibilities
-pp_CSF = CSF_stack.shape[0] / T1T2_stack_nnz.shape[0]
-pp_GM = GM_stack.shape[0] / T1T2_stack_nnz.shape[0]
-pp_WM = WM_stack.shape[0] / T1T2_stack_nnz.shape[0]
-
-##Ploting the cluster distributin    
-plt.figure()
-plt.scatter(T1T2_stack_nnz[:, 0], T1T2_stack_nnz[:, 1], c=Kmeans_pred_new, s=25)
-plt.scatter(centroid_new[:, 0], centroid_new[:, 1], marker='x', s=200, linewidths=3, color='w', zorder=10)
-plt.show()
-
+# Initialization (random or kmeans)
+init_type = 'random'
+pp_CSF, pp_GM, pp_WM, mean_CSF, cov_CSF, mean_GM, cov_GM, mean_WM, cov_WM = init(init_type) # kmeans
 
 ######################## EM algorithm ############################
-
 MAX_STEPS = 3
 min_err = 1e-3 # 0.001
 n_steps = 0
@@ -294,7 +329,6 @@ label_distribution = np.array((pp_CSF, pp_GM , pp_WM))
 fig=plt.figure()
 
 while True:
-    
 ### EXPECTATION STEP ###
    CSF_gmm= np.apply_along_axis(partial(GaussMixModel, mean=mean_CSF, cov=cov_CSF), 1, T1T2_stack_nnz)
    GM_gmm= np.apply_along_axis(partial(GaussMixModel, mean=mean_GM, cov=cov_GM), 1, T1T2_stack_nnz)
@@ -353,7 +387,7 @@ while True:
    
    ditribution_difference = norm(label_distribution_new - label_distribution)
    log_err=  norm(log_n-log_o)
-   print("-------------------------------------")
+
    print("Step %d" % n_steps)
    print("Distribution change %f" % ditribution_difference)
    print("log change %f" %  log_err)
@@ -369,7 +403,8 @@ while True:
        break
    else:
         label_distribution = label_distribution_new
-
+        
+t1 = time.time() # time of convergence
 ################# Recontructing the image ############################
 
 seg_vector = np.zeros_like(T2_flat)
@@ -398,3 +433,7 @@ Slice_and_Dice(seg_img,labeled_img,"arr",slice_nr)
 ################## DICE Coefficient ##############################
 dice_csf, dice_gm, dice_wm = DICE(seg_img,labeled_img,"arr")
 print("CSF DICE = {}".format(dice_csf), "GM DICE = {}".format(dice_gm), "WM DICE = {}".format(dice_wm))
+
+################## Time Elapsed ##############################
+total = t1-t0
+print("Initialization type = {}".format(init_type), "Time elapsed = {}".format(dice_gm))
