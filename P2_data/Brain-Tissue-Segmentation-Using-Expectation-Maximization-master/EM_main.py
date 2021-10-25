@@ -225,10 +225,10 @@ def init(init_type):
         pp_WM = WM_stack.shape[0] / T1T2_stack_nnz.shape[0]
         
         ##Ploting the cluster distributin    
-        plt.figure()
-        plt.scatter(T1T2_stack_nnz[:, 0], T1T2_stack_nnz[:, 1], c=Kmeans_pred_new, s=25)
-        plt.scatter(centroid_new[:, 0], centroid_new[:, 1], marker='x', s=200, linewidths=3, color='w', zorder=10)
-        plt.show()
+        # plt.figure()
+        # plt.scatter(T1T2_stack_nnz[:, 0], T1T2_stack_nnz[:, 1], c=Kmeans_pred_new, s=25)
+        # plt.scatter(centroid_new[:, 0], centroid_new[:, 1], marker='x', s=200, linewidths=3, color='w', zorder=10)
+        # plt.show()
     else:
         ### Random Initialization
         rand_init_vect = np.random.randint(1,4,T1T2_stack_nnz.shape[0])
