@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Thu Oct  21 06:45:33 2021
 
@@ -77,8 +76,7 @@ def DICE(seg_im, ground_truth, imtype):
 
 def Slice_and_Dice(seg_im, ground_truth, imtype, slice_nr):
     """
-    Computes the DICE coefficients for the classes of just one slice and then plots
-    said slice.
+    Computes the DICE coefficients for the classes of just one slice.
     """
 
     if (imtype=="nifti"):
@@ -102,41 +100,7 @@ def Slice_and_Dice(seg_im, ground_truth, imtype, slice_nr):
     dice_wm = dice_itself(seg_wm[:,:,slice_nr], gt_wm[:,:,slice_nr])
     
     print("CSF DICE = {}".format(dice_csf), "GM DICE = {}".format(dice_gm), "WM DICE = {}".format(dice_wm))
-    
-    fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2,3,figsize=(12,8))
-    
-    ax1.set_title("WM Segmentation of slice no. {}".format(slice_nr))
-    ax1.imshow(seg_wm[:,:,slice_nr].T, cmap = "gray")
-    ax1.axes.get_xaxis().set_visible(False)
-    ax1.axes.get_yaxis().set_visible(False)
-    
-    ax2.set_title("CSF Segmentation of slice no. {}".format(slice_nr))
-    ax2.imshow(seg_csf[:,:,slice_nr].T, cmap = "gray")
-    ax2.axes.get_xaxis().set_visible(False)
-    ax2.axes.get_yaxis().set_visible(False)
 
-    ax3.set_title("GM Segmentation of slice no. {}".format(slice_nr))
-    ax3.imshow(seg_gm[:,:,slice_nr].T, cmap = "gray")
-    ax3.axes.get_xaxis().set_visible(False)
-    ax3.axes.get_yaxis().set_visible(False)
-    
-    ax4.set_title("WM Ground Truth of slice no. {}".format(slice_nr))
-    ax4.imshow(gt_wm[:,:,slice_nr].T, cmap = "gray")
-    ax4.axes.get_xaxis().set_visible(False)
-    ax4.axes.get_yaxis().set_visible(False)
-
-    ax5.set_title("CSF Segmentation of slice no. {}".format(slice_nr))
-    ax5.imshow(gt_csf[:,:,slice_nr].T, cmap = "gray")
-    ax5.axes.get_xaxis().set_visible(False)
-    ax5.axes.get_yaxis().set_visible(False)
-
-    ax6.set_title("GM Ground Truth of slice no. {}".format(slice_nr))
-    ax6.imshow(gt_gm[:,:,slice_nr].T, cmap = "gray")
-    ax6.axes.get_xaxis().set_visible(False)
-    ax6.axes.get_yaxis().set_visible(False)
-    
-    plt.tight_layout()
-    plt.show()
     
 def init(init_type):
     """
@@ -224,11 +188,6 @@ def init(init_type):
         pp_GM = GM_stack.shape[0] / T1T2_stack_nnz.shape[0]
         pp_WM = WM_stack.shape[0] / T1T2_stack_nnz.shape[0]
         
-        ##Ploting the cluster distributin    
-        # plt.figure()
-        # plt.scatter(T1T2_stack_nnz[:, 0], T1T2_stack_nnz[:, 1], c=Kmeans_pred_new, s=25)
-        # plt.scatter(centroid_new[:, 0], centroid_new[:, 1], marker='x', s=200, linewidths=3, color='w', zorder=10)
-        # plt.show()
     else:
         ### Random Initialization
         rand_init_vect = np.random.randint(1,4,T1T2_stack_nnz.shape[0])
@@ -326,8 +285,6 @@ min_err = 1e-3 # 0.001
 n_steps = 0
 label_distribution = np.array((pp_CSF, pp_GM , pp_WM))
 
-fig=plt.figure()
-
 while True:
 ### EXPECTATION STEP ###
    CSF_gmm= np.apply_along_axis(partial(GaussMixModel, mean=mean_CSF, cov=cov_CSF), 1, T1T2_stack_nnz)
@@ -418,10 +375,6 @@ show_slice(labeled_img, slice_nr) # og labels
 show_slice(T1_ROI, slice_nr) # ROI*T1
 show_slice(seg_img, slice_nr) # our segmentation
 
-# Plotting all labels together in one slice
-# plt.figure()
-# plt.imshow(seg_img[:,:,slice_nr].T, cmap='plasma')
-
 # Plotting label segmentation along with Ground Truth  
 Slice_and_Dice(seg_img,labeled_img,"arr",slice_nr)
 print("=========================================================")
@@ -431,5 +384,4 @@ dice_csf, dice_gm, dice_wm = DICE(seg_img,labeled_img,"arr")
 print("CSF DICE (slice no. {}) = {}".format(slice_nr, dice_csf), "GM DICE (slice no. {})= {}".format(slice_nr, dice_gm), "WM DICE = (slice no. {}){}".format(slice_nr, dice_wm))
 
 ################## Time Elapsed ##############################
-total = t1-t0
-print("Initialization type = {};".format(init_type), "Time elapsed = {}".format(total))
+print("Initialization type = {};".format(init_type), "Time elapsed = {}".format(t1-t0))
