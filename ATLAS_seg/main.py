@@ -9,6 +9,7 @@ import os
 from functools import partial
 import time
 import itk
+from itkwidgets import compare, checkerboard, view
 
 im_f_path = 'C:\\Users\\usuari\\Javascript_API\\MISA\\ATLAS_seg\\testing-set\\testing-images\\1003.nii.gz' # TO_DO
 im_m_path = 'C:\\Users\\usuari\\Javascript_API\\MISA\\ATLAS_seg\\testing-set\\testing-images\\1004.nii.gz' # TO_DO
@@ -45,8 +46,15 @@ elastix_object.UpdateLargestPossibleRegion()
 result_image = elastix_object.GetOutput()
 result_transform_parameters = elastix_object.GetTransformParameterObject()
 
-# [registered_image, params] = itk.elastix_registration_method(im_f, im_m)
-
-
+# Comparing the Results
+# a = checkerboard(im_f, result_image)
+# b = compare(im_f, result_image, link_cmap=True)
+dif_og = np.subtract(im_f, im_m)
+print(dif_og)
+dif_reg = np.subtract(im_f, result_image)
+print(sum(sum(dif_reg)))
+             
 # Save image with itk
 itk.imwrite(result_image,'1004_reg.nii.gz')
+
+
