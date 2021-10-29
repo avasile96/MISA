@@ -11,8 +11,8 @@ import time
 import itk
 from itkwidgets import compare, checkerboard, view
 
-im_f_path = 'C:\\Users\\usuari\\Javascript_API\\MISA\\ATLAS_seg\\testing-set\\testing-images\\1003.nii.gz' # TO_DO
-im_m_path = 'C:\\Users\\usuari\\Javascript_API\\MISA\\ATLAS_seg\\testing-set\\testing-images\\1004.nii.gz' # TO_DO
+im_f_path = 'F:\\DISCO_DURO\\Mixto\\Subjects\\GitHub\\MISA\\ATLAS_seg\\testing-set\\testing-images\\1003.nii.gz' # TO_DO
+im_m_path = 'F:\\DISCO_DURO\\Mixto\\Subjects\\GitHub\\MISA\ATLAS_seg\\testing-set\\testing-images\\1004.nii.gz' # TO_DO
 
 # Reading images
 im_f = itk.imread(im_f_path, itk.F)
@@ -20,7 +20,7 @@ im_m = itk.imread(im_m_path, itk.F)
 
 # Initialization
 parameter_object = itk.ParameterObject.New()
-default_rigid_parameter_map = parameter_object.GetDefaultParameterMap('bspline')
+default_rigid_parameter_map = parameter_object.GetDefaultParameterMap('rigid')
 parameter_object.AddParameterMap(default_rigid_parameter_map)
 
 # Call registration function
