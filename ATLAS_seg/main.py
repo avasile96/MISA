@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import nibabel as nib
 import operator
@@ -11,8 +12,11 @@ import time
 import itk
 from itkwidgets import compare, checkerboard, view
 
-im_f_path = 'F:\\DISCO_DURO\\Mixto\\Subjects\\GitHub\\MISA\\ATLAS_seg\\testing-set\\testing-images\\1003.nii.gz' # TO_DO
-im_m_path = 'F:\\DISCO_DURO\\Mixto\\Subjects\\GitHub\\MISA\ATLAS_seg\\testing-set\\testing-images\\1004.nii.gz' # TO_DO
+
+# Directories
+source_dir = os.getcwd()  # current working directory
+im_f_path = os.path.join(source_dir, 'testing-set', 'testing-images', '1003.nii.gz')
+im_m_path = os.path.join(source_dir, 'testing-set', 'testing-images', '1004.nii.gz')
 
 # Reading images
 im_f = itk.imread(im_f_path, itk.F)
