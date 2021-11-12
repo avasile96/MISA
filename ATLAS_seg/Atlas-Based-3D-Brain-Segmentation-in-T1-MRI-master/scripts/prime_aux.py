@@ -53,7 +53,7 @@ def all_labelPropg(mode='prob_atlas'):
         
         
 def labelPropg(CSF,WM,GM,mask,export,mode='prob_atlas'):
-    if (mode=='prob_atlas'):
+    if (mode=='prob_atlas'): # Label propagation
         # Load Probability Atlases
         probatlas_CSF    = np.expand_dims(np.array(sitk.GetArrayFromImage(sitk.ReadImage(CSF))),axis=3)
         probatlas_WM     = np.expand_dims(np.array(sitk.GetArrayFromImage(sitk.ReadImage(WM))),axis=3)
@@ -76,7 +76,7 @@ def labelPropg(CSF,WM,GM,mask,export,mode='prob_atlas'):
         elif (export=='return'):
             return predicted_mask
     
-    elif (mode=='prob_inten_atlas'):
+    elif (mode=='prob_inten_atlas'): # Tissue models
         # Load Probability Atlases
         probatlas_CSF    = np.array(sitk.GetArrayFromImage(sitk.ReadImage(CSF)))
         probatlas_WM     = np.array(sitk.GetArrayFromImage(sitk.ReadImage(WM)))

@@ -49,7 +49,7 @@ plt.legend(loc='upper right')
 plt.show()
 
 
-index = '038'
+index = '039'
 
 # Segmentation via Training Image-Based Probabilistic Atlas
 predicted_mask00 = labelPropg(CSF="../results/testing_results/transformed_labels/CSF/"+index+"/result.mhd", WM="../results/testing_results/transformed_labels/WM/"+index+"/result.mhd", 

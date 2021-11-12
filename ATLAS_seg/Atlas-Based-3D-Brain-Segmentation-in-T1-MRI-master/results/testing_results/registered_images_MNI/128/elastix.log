@@ -1,0 +1,27 @@
+
+elastix is started at Fri Nov 12 13:20:32 2021.
+
+which elastix:   elastix
+elastix runs at: VIBOT13
+  Windows  Professional (x64),  (Build 9200)
+  with 16252 MB memory, and 4 cores @ 3408 MHz.
+-------------------------------------------------------------------------
+
+Running elastix with parameter file 0: ".\parameters\par01a.txt".
+
+Current time: Fri Nov 12 13:20:32 2021.
+Reading the elastix parameters from file ...
+
+ERROR: could not read moving image.
+
+itk::ImageFileReaderException (000000B5014FEFB0)
+Location: "unknown" 
+File: f:\x\src\i\itk501\modules\io\imagebase\include\itkImageFileReader.hxx
+Line: 136
+Description:  Could not create IO object for reading file .\..\results\atlas\MNItemplate.nii.gz
+The file doesn't exist. 
+Filename = .\..\results\atlas\MNItemplate.nii.gz
+
+
+
+Errors occurred!
