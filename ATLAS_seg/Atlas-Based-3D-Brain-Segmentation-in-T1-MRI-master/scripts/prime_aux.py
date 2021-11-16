@@ -2,6 +2,7 @@
 import numpy as np
 import SimpleITK as sitk
 import warnings
+from skimage import io
 warnings.filterwarnings("ignore")
 
 def volumeIntenProb(vol,mask):
@@ -96,6 +97,41 @@ def labelPropg(CSF,WM,GM,mask,export,mode='prob_atlas'):
         
         # Maskout External Label Predictions
         predicted_mask   = np.multiply(max_index,bin_mask).astype(np.uint8)
+        
+        #saving routine
+        # io.imsave('predicted_mask.tif',np.array(predicted_mask,dtype = np.float32))
+        
+        if (export=='save'):
+            output_prediction        = sitk.GetImageFromArray(predicted_mask)
+            output_prediction.CopyInformation(sitk.ReadImage((mask.replace('/testing-mask','/testing-images')).replace('_1C','')))
+            writer           = sitk.ImageFileWriter()
+            output_dir       = (mask.replace('../data/testing-set/testing-mask','../results/testing_results/predictions/')).replace('_1C.nii.gz','.nii')
+            writer.SetFileName(output_dir)
+            writer.Execute(output_prediction)
+        elif (export=='return'):
+            return predicted_mask
+    elif (mode =='MNI_atlas'): # MNI
+        probatlas_CSF    = np.array(sitk.GetArrayFromImage(sitk.ReadImage(CSF)))
+        probatlas_WM     = np.array(sitk.GetArrayFromImage(sitk.ReadImage(WM)))
+        probatlas_GM     = np.array(sitk.GetArrayFromImage(sitk.ReadImage(GM)))
+        bin_mask         = np.array(sitk.GetArrayFromImage(sitk.ReadImage(mask)))
+        
+        # Derive Intensity Probability Volume via Tissue Models
+        intprob_CSF, intprob_WM, intprob_GM = volumeIntenProb(vol=(mask.replace('/testing-mask','/testing-images')).replace('_1C',''),mask=mask)
+        
+        # Combined Class Probabilities
+        prob_CSF = np.expand_dims((probatlas_CSF*intprob_CSF),axis=3)
+        prob_WM  = np.expand_dims((probatlas_WM*intprob_WM),axis=3)
+        prob_GM  = np.expand_dims((probatlas_GM*intprob_GM),axis=3)
+        
+        # Assign Label Matching Max Class Probability
+        max_index        = np.argmax(np.concatenate((prob_CSF, prob_WM, prob_GM),axis=3),axis=3)+1
+        
+        # Maskout External Label Predictions
+        predicted_mask   = np.multiply(max_index,bin_mask).astype(np.uint8)
+        
+        #saving routine
+        # io.imsave('predicted_mask.tif',np.array(predicted_mask,dtype = np.float32))
         
         if (export=='save'):
             output_prediction        = sitk.GetImageFromArray(predicted_mask)
@@ -220,6 +256,31 @@ def computeAtlasProb(export):
         
     elif (export=='return'):
         return prob_atlas_CSF/1, prob_atlas_WM/2, prob_atlas_GM/3
+    
+def computeMNIAtlasProb(export): # alex
+
+    label             =     np.array(sitk.GetArrayFromImage(sitk.ReadImage("../results/atlas/atlas.nii")))
+    
+    prob_atlasMNI_CSF = label[1]
+    prob_atlasMNI_GM  = label[2]
+    prob_atlasMNI_WM  = label[3]
+    
+    if (export=='save'):
+        output_prob_atlasMNI_CSF        = sitk.GetImageFromArray(prob_atlasMNI_CSF/prob_atlasMNI_CSF.max())
+        output_prob_atlasMNI_GM         = sitk.GetImageFromArray(prob_atlasMNI_GM/prob_atlasMNI_GM.max())
+        output_prob_atlasMNI_WM         = sitk.GetImageFromArray(prob_atlasMNI_WM/prob_atlasMNI_WM.max())
+        
+        writer           = sitk.ImageFileWriter()
+        writer.SetFileName('../results/atlas/prob_MNIatlas_CSF.nii')
+        writer.Execute(output_prob_atlasMNI_CSF)
+        writer.SetFileName('../results/atlas/prob_MNIatlas_WM.nii')
+        writer.Execute(output_prob_atlasMNI_WM)
+        writer.SetFileName('../results/atlas/prob_MNIatlas_GM.nii')
+        writer.Execute(output_prob_atlasMNI_GM)
+        
+    elif (export=='return'):
+        return prob_atlasMNI_CSF/prob_atlasMNI_CSF.max(), prob_atlasMNI_WM/prob_atlasMNI_WM.max(), prob_atlasMNI_GM/prob_atlasMNI_GM.max()
+
 
 
 
