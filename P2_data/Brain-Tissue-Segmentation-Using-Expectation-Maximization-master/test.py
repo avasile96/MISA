@@ -34,7 +34,7 @@ def GaussMixModel(x, mean, cov):
     Out:
         gaus_mix_model (np array): Gaussian mixture for every point in feature space.
     """
-    gaus_mix_model = np.exp(-0.5*(x - mean) @ inv(cov) @ np.transpose(x - mean)) / (2 * pi * sqrt(det(cov)))
+    gaus_mix_model = np.exp(-0.5*(x - mean) @ cov**-1 @ np.transpose(x - mean)) / (2 * pi * sqrt(cov[0,0]))
     
     return gaus_mix_model
 
@@ -253,7 +253,7 @@ T2_masked = np.multiply(T2_img, label_copy)
 T1_ROI_data = nib.Nifti1Image(T1_masked, T1_data.affine, T1_data.header)
 T1_ROI = T1_ROI_data.get_fdata()
 
-T2_ROI_data = nib.Nifti1Image(T2_masked, T2_data.affine, T2_data.header)
+T2_ROI_data = nib.Nifti1Image(T1_masked, T1_data.affine, T1_data.header)
 T2_ROI = T2_ROI_data.get_fdata()
 # imshowing the slices
 show_slice(label_copy, slice_nr)

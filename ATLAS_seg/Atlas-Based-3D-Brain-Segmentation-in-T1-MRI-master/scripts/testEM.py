@@ -17,6 +17,7 @@ from sklearn.cluster import KMeans
 import os
 from functools import partial
 import time
+import SimpleITK as sitk
 
 
 # Showing the 2d slices
@@ -34,7 +35,7 @@ def GaussMixModel(x, mean, cov):
     Out:
         gaus_mix_model (np array): Gaussian mixture for every point in feature space.
     """
-    gaus_mix_model = np.exp(-0.5*(x - mean) @ inv(cov) @ np.transpose(x - mean)) / (2 * pi * sqrt(det(cov)))
+    gaus_mix_model = np.exp(-0.5*(x - mean) @ cov**-1 @ np.transpose(x - mean)) / (2 * pi * sqrt(cov[0,0]))
     
     return gaus_mix_model
 
@@ -213,29 +214,26 @@ def init(init_type):
     return pp_CSF, pp_GM, pp_WM, mean_CSF, cov_CSF, mean_GM, cov_GM, mean_WM, cov_WM
     
 ####################### MAIN #############################
-slice_nr = 20
+index = '039'
+volume_dir="../data/testing-set/testing-images/1"+index+".nii.gz"
+labels_dir="../data/testing-set/testing-labels/1"+index+"_3C.nii.gz"
+mask_dir="../data/testing-set/testing-mask/1"+index+"_1C.nii.gz"
+slice_nr = 200
+############## Loading data ###################
+volumeITK                = sitk.ReadImage(volume_dir, sitk.sitkFloat32) # registered image
+volume                   = np.array(sitk.GetArrayFromImage(volumeITK))
+# volume                   = volume/volume.max() * 255
 ############## Loading data ###################
 brain_data_path ="./P2_data/2" # indicating data location
 
 # Load T1 image
-T1_data = os.path.join(brain_data_path, 'T1.nii')
-T1_data = nib.load(T1_data)
-T1_img=T1_data.get_fdata()
+T1_img=volume
 
 # Load T2_Flair image
-T2_data = os.path.join(brain_data_path, 'T2_FLAIR.nii')
-T2_data = nib.load(T2_data)
-T2_img = T2_data.get_fdata()
+T2_img = volume
 
 # Load Label Image
-labeled_data = os.path.join(brain_data_path, 'LabelsForTesting.nii')
-labeled_data = nib.load(labeled_data)
-labeled_img = labeled_data.get_fdata()
-
-# Ploting images  
-show_slice(labeled_img, slice_nr)
-show_slice(T1_img, slice_nr)
-show_slice(T2_img, slice_nr)
+labeled_img               = np.array(sitk.GetArrayFromImage(sitk.ReadImage(labels_dir))) # transformed labels
 
 
 ### Selecting the Region of Interest (ROI) ###
@@ -249,21 +247,10 @@ label_copy[label_copy>0] = 1 # safety measure
 # multiplying with working volume
 T1_masked = np.multiply(T1_img, label_copy)
 T2_masked = np.multiply(T2_img, label_copy)
-# saving the masked ROI images
-T1_ROI_data = nib.Nifti1Image(T1_masked, T1_data.affine, T1_data.header)
-T1_ROI = T1_ROI_data.get_fdata()
-
-T2_ROI_data = nib.Nifti1Image(T2_masked, T2_data.affine, T2_data.header)
-T2_ROI = T2_ROI_data.get_fdata()
-# imshowing the slices
-show_slice(label_copy, slice_nr)
-show_slice(labeled_img, slice_nr)
-show_slice(T1_ROI, slice_nr)
-show_slice(T2_ROI, slice_nr)
 
 # Vectorizing the images
-T1_flat = T1_ROI.copy().flatten()
-T2_flat = T2_ROI.copy().flatten()
+T1_flat = T1_masked.copy().flatten()
+T2_flat = T1_masked.copy().flatten()
 
 T1T2_linear_stack = np.vstack((T1_flat, T2_flat)).T
 # Getting the nonzero elements of the working object
@@ -280,7 +267,7 @@ init_type = 'random'
 pp_CSF, pp_GM, pp_WM, mean_CSF, cov_CSF, mean_GM, cov_GM, mean_WM, cov_WM = init(init_type) #kmeans #random
 
 ######################## EM algorithm ############################
-MAX_STEPS = 3
+MAX_STEPS = 1
 min_err = 1e-3 # 0.001
 n_steps = 0
 label_distribution = np.array((pp_CSF, pp_GM , pp_WM))
@@ -310,19 +297,25 @@ while True:
    Prediction=Prediction+1
 
    _,counts = np.unique(Prediction, return_counts=True)
-   pp_CSF = counts[0] / T1T2_stack_nnz.shape[0]
-   pp_GM = counts[1] / T1T2_stack_nnz.shape[0]
-   pp_WM = counts[2] / T1T2_stack_nnz.shape[0]
+   if (np.unique(Prediction)==1).any():
+       pp_CSF = np.count_nonzero(Prediction == 1) / T1T2_stack_nnz.shape[0]
+   if (np.unique(Prediction)==2).any():        
+       pp_GM = np.count_nonzero(Prediction == 2) / T1T2_stack_nnz.shape[0]
+   if (np.unique(Prediction)==3).any():
+       pp_WM = np.count_nonzero(Prediction == 3) / T1T2_stack_nnz.shape[0]
 
    label_distribution_new = np.array((pp_CSF, pp_GM , pp_WM))
 
 ### calculating new means and covariances ###
-   mean_CSF= (1/counts[0]) * (weights[:, 0] @ T1T2_stack_nnz)
-   mean_GM= (1/counts[1]) * (weights[:, 1] @ T1T2_stack_nnz)
-   mean_WM= (1/counts[2]) * (weights[:, 2] @ T1T2_stack_nnz)
-   cov_CSF = (1/counts[0]) * (weights[:, 0] * np.transpose(T1T2_stack_nnz - mean_CSF)) @ (T1T2_stack_nnz - mean_CSF)
-   cov_GM= (1/counts[1]) * (weights[:, 1] * np.transpose(T1T2_stack_nnz - mean_GM)) @ (T1T2_stack_nnz - mean_GM)
-   cov_WM= (1/counts[2]) * (weights[:, 2] * np.transpose(T1T2_stack_nnz - mean_WM)) @ (T1T2_stack_nnz - mean_WM)
+   if (np.unique(Prediction)==1).any():
+       mean_CSF= (1/np.count_nonzero(Prediction == 1)) * (weights[:, 0] @ T1T2_stack_nnz)
+       cov_CSF = (1/np.count_nonzero(Prediction == 1)) * (weights[:, 0] * np.transpose(T1T2_stack_nnz - mean_CSF)) @ (T1T2_stack_nnz - mean_CSF)
+   if (np.unique(Prediction)==2).any():
+       mean_GM= (1/np.count_nonzero(Prediction == 2)) * (weights[:, 1] @ T1T2_stack_nnz)
+       cov_GM= (1/np.count_nonzero(Prediction == 2)) * (weights[:, 1] * np.transpose(T1T2_stack_nnz - mean_GM)) @ (T1T2_stack_nnz - mean_GM)
+   if (np.unique(Prediction)==3).any():
+       mean_WM= (1/np.count_nonzero(Prediction == 3)) * (weights[:, 2] @ T1T2_stack_nnz)
+       cov_WM= (1/np.count_nonzero(Prediction == 3)) * (weights[:, 2] * np.transpose(T1T2_stack_nnz - mean_WM)) @ (T1T2_stack_nnz - mean_WM)
 
 ### Generating new GMMs ##
    CSF_gmm= np.apply_along_axis(partial(GaussMixModel, mean=mean_CSF, cov=cov_CSF), 1, T1T2_stack_nnz)
@@ -370,10 +363,10 @@ seg_img = np.reshape(seg_vector,T1_img.shape)
 
 ################ PLOTTING #####################
 
-show_slice(label_copy, slice_nr) # ROI
-show_slice(labeled_img, slice_nr) # og labels
-show_slice(T1_ROI, slice_nr) # ROI*T1
-show_slice(seg_img, slice_nr) # our segmentation
+# show_slice(label_copy, slice_nr) # ROI
+# show_slice(labeled_img, slice_nr) # og labels
+# show_slice(T1_ROI, slice_nr) # ROI*T1
+# show_slice(seg_img, slice_nr) # our segmentation
 
 # Plotting label segmentation along with Ground Truth  
 Slice_and_Dice(seg_img,labeled_img,"arr",slice_nr)
