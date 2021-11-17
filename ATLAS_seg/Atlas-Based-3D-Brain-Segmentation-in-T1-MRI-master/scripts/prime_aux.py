@@ -5,6 +5,8 @@ import warnings
 from skimage import io
 warnings.filterwarnings("ignore")
 
+
+
 def volumeIntenProb(vol,mask):
     # Load Volume/Mask
     volume        = np.array(sitk.GetArrayFromImage(sitk.ReadImage(vol, sitk.sitkFloat32))).astype(np.int16)
@@ -110,6 +112,8 @@ def labelPropg(CSF,WM,GM,mask,export,mode='prob_atlas'):
             writer.Execute(output_prediction)
         elif (export=='return'):
             return predicted_mask
+        
+        
     elif (mode =='MNI_atlas'): # MNI
         probatlas_CSF    = np.array(sitk.GetArrayFromImage(sitk.ReadImage(CSF)))
         probatlas_WM     = np.array(sitk.GetArrayFromImage(sitk.ReadImage(WM)))

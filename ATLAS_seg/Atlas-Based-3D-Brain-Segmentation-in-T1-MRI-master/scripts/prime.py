@@ -50,48 +50,63 @@ from EM_main_final import segmentEM
 
 
 index = '005'
+# MAX_STEPS = 3
+# err = 1e-3
+steps = [3, 5, 10]
+errors = [1e-3, 13-6]
 
+for MAX_STEPS in steps:
+    for err in errors:
 # Segmentation via Training Image-Based Probabilistic Atlas
-predicted_mask00 = labelPropg(CSF="../results/testing_results/transformed_labels/CSF/"+index+"/result.mhd", WM="../results/testing_results/transformed_labels/WM/"+index+"/result.mhd", 
-                              GM="../results/testing_results/transformed_labels/GM/"+index+"/result.mhd",   mask="../data/testing-set/testing-mask/1"+index+"_1C.nii.gz",
-                              mode='prob_atlas', export='return')
+# predicted_mask00 = labelPropg(CSF="../results/testing_results/transformed_labels/CSF/"+index+"/result.mhd", WM="../results/testing_results/transformed_labels/WM/"+index+"/result.mhd", 
+#                               GM="../results/testing_results/transformed_labels/GM/"+index+"/result.mhd",   mask="../data/testing-set/testing-mask/1"+index+"_1C.nii.gz",
+#                               mode='prob_atlas', export='return')
+
+# # Segmentation via MNI Probabilistic Atlas
+# predicted_mask01 = labelPropg(CSF="../results/testing_results/transformed_labels_MNI/CSF/"+index+"/result.mhd", WM="../results/testing_results/transformed_labels_MNI/WM/"+index+"/result.mhd", 
+#                               GM="../results/testing_results/transformed_labels_MNI/GM/"+index+"/result.mhd",   mask="../data/testing-set/testing-mask/1"+index+"_1C.nii.gz",
+#                               mode="prob_atlas", export='return')
+
+
+# # Segmentation via Training Image-Based Probability Atlas
+# predicted_mask10 = labelPropg(CSF="../results/testing_results/transformed_labels/CSF/"+index+"/result.mhd", WM="../results/testing_results/transformed_labels/WM/"+index+"/result.mhd", 
+#                               GM="../results/testing_results/transformed_labels/GM/"+index+"/result.mhd",   mask="../data/testing-set/testing-mask/1"+index+"_1C.nii.gz",
+#                               mode="prob_inten_atlas", export="return")
 
 # Segmentation via MNI Probabilistic Atlas
-predicted_mask01 = labelPropg(CSF="../results/testing_results/transformed_labels_MNI/CSF/"+index+"/result.mhd", WM="../results/testing_results/transformed_labels_MNI/WM/"+index+"/result.mhd", 
-                              GM="../results/testing_results/transformed_labels_MNI/GM/"+index+"/result.mhd",   mask="../data/testing-set/testing-mask/1"+index+"_1C.nii.gz",
-                              mode="prob_atlas", export='return')
-
-
-# Segmentation via Training Image-Based Probability Atlas
-predicted_mask10 = labelPropg(CSF="../results/testing_results/transformed_labels/CSF/"+index+"/result.mhd", WM="../results/testing_results/transformed_labels/WM/"+index+"/result.mhd", 
-                              GM="../results/testing_results/transformed_labels/GM/"+index+"/result.mhd",   mask="../data/testing-set/testing-mask/1"+index+"_1C.nii.gz",
-                              mode="prob_inten_atlas", export="return")
-
-# Segmentation via MNI Probabilistic Atlas
-predicted_mask11 = labelPropg(CSF="../results/testing_results/transformed_labels_MNI/CSF/"+index+"/result.mhd", WM="../results/testing_results/transformed_labels_MNI/WM/"+index+"/result.mhd", 
-                              GM="../results/testing_results/transformed_labels_MNI/GM/"+index+"/result.mhd",   mask="../data/testing-set/testing-mask/1"+index+"_1C.nii.gz",
-                              mode="prob_inten_atlas", export="return")
-
-# Segmentation via Expectation-Maximization with K-Means Initialization
-mask1, score1   = segmentEM(volume_dir="../data/testing-set/testing-images/1"+index+".nii.gz", labels_dir="../data/testing-set/testing-labels/1"+index+"_3C.nii.gz",
-                            mask_dir="../data/testing-set/testing-mask/1"+index+"_1C.nii.gz", init_mode="kmeans", atlas=None, mode="base", export="return", MAX_STEPS)
-
-# Segmentation via Expectation-Maximization with Probabilistic Atlas Initialization
-mask2, score2   = segmentEM(volume_dir="../data/testing-set/testing-images/1"+index+".nii.gz", labels_dir="../data/testing-set/testing-labels/1"+index+"_3C.nii.gz",
-                            mask_dir="../data/testing-set/testing-mask/1"+index+"_1C.nii.gz", init_mode="atlas", atlas='training', mode="base", export="return", MAX_STEPS)
-
-# Segmentation via Expectation-Maximization with Probabilistic Atlas Initialization and Late Fusion
-mask3, score3   = segmentEM(volume_dir="../data/testing-set/testing-images/1"+index+".nii.gz", labels_dir="../data/testing-set/testing-labels/1"+index+"_3C.nii.gz",
-                            mask_dir="../data/testing-set/testing-mask/1"+index+"_1C.nii.gz", init_mode="atlas", atlas='training', mode="atlas", export="return", MAX_STEPS)
-
-# Segmentation via Expectation-Maximization with MNI Atlas Initialization
-mask4, score4   = segmentEM(volume_dir="../data/testing-set/testing-images/1"+index+".nii.gz", labels_dir="../data/testing-set/testing-labels/1"+index+"_3C.nii.gz",
-                            mask_dir="../data/testing-set/testing-mask/1"+index+"_1C.nii.gz", init_mode="atlas", atlas='MNI', mode="base", export="return", MAX_STEPS)
-
-# Segmentation via Expectation-Maximization with MNI Atlas Initialization and Late Fusion
-mask5, score5   = segmentEM(volume_dir="../data/testing-set/testing-images/1"+index+".nii.gz", labels_dir="../data/testing-set/testing-labels/1"+index+"_3C.nii.gz",
-                            mask_dir="../data/testing-set/testing-mask/1"+index+"_1C.nii.gz", init_mode="atlas", atlas='MNI', mode="atlas", export="return", MAX_STEPS)
-
+# predicted_mask11 = labelPropg(CSF="../results/testing_results/transformed_labels_MNI/CSF/"+index+"/result.mhd", WM="../results/testing_results/transformed_labels_MNI/WM/"+index+"/result.mhd", 
+#                               GM="../results/testing_results/transformed_labels_MNI/GM/"+index+"/result.mhd",   mask="../data/testing-set/testing-mask/1"+index+"_1C.nii.gz",
+#                               mode="prob_inten_atlas", export="return")
+    
+        # Segmentation via Expectation-Maximization with K-Means Initialization
+        mask1, score1   = segmentEM(volume_dir="../data/testing-set/testing-images/1"+index+".nii.gz", labels_dir="../data/testing-set/testing-labels/1"+index+"_3C.nii.gz",
+                                    mask_dir="../data/testing-set/testing-mask/1"+index+"_1C.nii.gz", init_mode="kmeans", atlas=None, mode="base", export="return", 
+                                    MAX_STEPS=MAX_STEPS)
+        print("DICE: CSF, GM, WM: {}".format(score1))
+        
+        # Segmentation via Expectation-Maximization with Probabilistic Atlas Initialization
+        mask2, score2   = segmentEM(volume_dir="../data/testing-set/testing-images/1"+index+".nii.gz", labels_dir="../data/testing-set/testing-labels/1"+index+"_3C.nii.gz",
+                                    mask_dir="../data/testing-set/testing-mask/1"+index+"_1C.nii.gz", init_mode="atlas", atlas='training', mode="base", export="return", 
+                                    MAX_STEPS=MAX_STEPS)
+        print("DICE: CSF, GM, WM: {}".format(score2))
+        
+        # Segmentation via Expectation-Maximization with Probabilistic Atlas Initialization and Late Fusion
+        mask3, score3   = segmentEM(volume_dir="../data/testing-set/testing-images/1"+index+".nii.gz", labels_dir="../data/testing-set/testing-labels/1"+index+"_3C.nii.gz",
+                                    mask_dir="../data/testing-set/testing-mask/1"+index+"_1C.nii.gz", init_mode="atlas", atlas='training', mode="atlas", export="return", 
+                                    MAX_STEPS=MAX_STEPS)
+        print("DICE: CSF, GM, WM: {}".format(score3))
+        
+        # Segmentation via Expectation-Maximization with MNI Atlas Initialization
+        mask4, score4   = segmentEM(volume_dir="../data/testing-set/testing-images/1"+index+".nii.gz", labels_dir="../data/testing-set/testing-labels/1"+index+"_3C.nii.gz",
+                                    mask_dir="../data/testing-set/testing-mask/1"+index+"_1C.nii.gz", init_mode="MNI", atlas='MNI', mode="base", export="return", 
+                                    MAX_STEPS=MAX_STEPS)
+        print("DICE: CSF, GM, WM: {}".format(score4))
+        
+        # Segmentation via Expectation-Maximization with MNI Atlas Initialization and Late Fusion
+        mask5, score5   = segmentEM(volume_dir="../data/testing-set/testing-images/1"+index+".nii.gz", labels_dir="../data/testing-set/testing-labels/1"+index+"_3C.nii.gz",
+                                    mask_dir="../data/testing-set/testing-mask/1"+index+"_1C.nii.gz", init_mode="MNI", atlas='MNI', mode="atlas", export="return", 
+                                    MAX_STEPS=MAX_STEPS)
+        print("DICE: CSF, GM, WM: {}".format(score5))
 
 #%% EXECUTE ONE-TIME TO STORE ORIGINALS
 

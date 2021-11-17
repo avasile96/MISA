@@ -19,89 +19,92 @@ from functools import partial
 import time
 import SimpleITK as sitk
 
+# Showing the 2d slices
+def show_slice(img, slice_nr):
+    plt.figure()
+    plt.imshow(img[:,:,slice_nr].T, cmap='gray')
+
+
+def GaussMixModel(x, mean, cov):
+    """
+    In:
+        x (np array): nxd dimentional, n= number of samples; d = dimention
+        mean (np array): d-dimentional, mean value.
+        cov (np array): dxd dimentional covariance matrix.
+    Out:
+        gaus_mix_model (np array): Gaussian mixture for every point in feature space.
+    """
+    gaus_mix_model = np.exp(-0.5*(x - mean) @ cov**-1 @ np.transpose(x - mean)) / (2 * pi * sqrt(cov[0,0]))
+    
+    return gaus_mix_model
+
+
+def dice_itself(segmentation, ground_truth):
+        and_gate = np.logical_and(segmentation, ground_truth)
+        return 2. * and_gate.sum() / (segmentation.sum() + ground_truth.sum())
+    
+def DICE(seg_im, ground_truth, imtype):
+    """   
+    In:
+        seg_im (np array): Segmented Image.
+        ground_truth (np array): Ground Truth Image.
+        State: "nifti" if the images are nifti file
+               "arr"   if the images are an ndarray
+    out:
+        Dice Similarity Coeff. for each tissue: dice_csf, dice_gm, dice_wm."""
+
+    if (imtype=="nifti"):
+       seg_data = seg_im.get_data().copy()
+       groundtruth_data = ground_truth.get_data().copy()
+    elif (imtype=="arr"):
+       seg_data = seg_im.copy()
+       groundtruth_data = ground_truth.copy()
+    
+    seg_csf = (seg_data == 1) * 1
+    gt_csf = (groundtruth_data == 1) * 1
+    dice_csf = dice_itself(seg_csf, gt_csf)
+
+    seg_gm = (seg_data == 2) * 1
+    gt_gm = (groundtruth_data == 2) * 1
+    dice_gm = dice_itself(seg_gm, gt_gm)
+
+    seg_wm = (seg_data == 3) * 1
+    gt_wm = (groundtruth_data == 3) * 1
+    dice_wm = dice_itself(seg_wm, gt_wm)
+    
+    return dice_csf, dice_gm, dice_wm
+
+def Slice_and_Dice(seg_im, ground_truth, imtype, slice_nr):
+    """
+    Computes the DICE coefficients for the classes of just one slice.
+    """
+
+    if (imtype=="nifti"):
+       seg_data = seg_im.get_data().copy()
+       groundtruth_data = ground_truth.get_data().copy()
+    elif (imtype=="arr"):
+       seg_data = seg_im.copy()
+       groundtruth_data = ground_truth.copy()
+    
+
+    seg_csf = (seg_data == 1) * 1
+    gt_csf = (groundtruth_data == 1) * 1
+    dice_csf = dice_itself(seg_csf[:,:,slice_nr], gt_csf[:,:,slice_nr])
+
+    seg_gm = (seg_data == 2) * 1
+    gt_gm = (groundtruth_data == 2) * 1
+    dice_gm = dice_itself(seg_gm[:,:,slice_nr], gt_gm[:,:,slice_nr])
+
+    seg_wm = (seg_data == 3) * 1
+    gt_wm = (groundtruth_data == 3) * 1
+    dice_wm = dice_itself(seg_wm[:,:,slice_nr], gt_wm[:,:,slice_nr])
+    
+    print("CSF DICE = {}".format(dice_csf), "GM DICE = {}".format(dice_gm), "WM DICE = {}".format(dice_wm))
+    
+    
 def segmentEM(volume_dir,labels_dir,mask_dir,init_mode,mode,export,atlas=None,MAX_STEPS =3, err=1e-3):
 
-    # Showing the 2d slices
-    def show_slice(img, slice_nr):
-        plt.figure()
-        plt.imshow(img[:,:,slice_nr].T, cmap='gray')
     
-    
-    def GaussMixModel(x, mean, cov):
-        """
-        In:
-            x (np array): nxd dimentional, n= number of samples; d = dimention
-            mean (np array): d-dimentional, mean value.
-            cov (np array): dxd dimentional covariance matrix.
-        Out:
-            gaus_mix_model (np array): Gaussian mixture for every point in feature space.
-        """
-        gaus_mix_model = np.exp(-0.5*(x - mean) @ cov**-1 @ np.transpose(x - mean)) / (2 * pi * sqrt(cov[0,0]))
-        
-        return gaus_mix_model
-    
-    
-    def dice_itself(segmentation, ground_truth):
-            and_gate = np.logical_and(segmentation, ground_truth)
-            return 2. * and_gate.sum() / (segmentation.sum() + ground_truth.sum())
-        
-    def DICE(seg_im, ground_truth, imtype):
-        """   
-        In:
-            seg_im (np array): Segmented Image.
-            ground_truth (np array): Ground Truth Image.
-            State: "nifti" if the images are nifti file
-                   "arr"   if the images are an ndarray
-        out:
-            Dice Similarity Coeff. for each tissue: dice_csf, dice_gm, dice_wm."""
-    
-        if (imtype=="nifti"):
-           seg_data = seg_im.get_data().copy()
-           groundtruth_data = ground_truth.get_data().copy()
-        elif (imtype=="arr"):
-           seg_data = seg_im.copy()
-           groundtruth_data = ground_truth.copy()
-        
-        seg_csf = (seg_data == 1) * 1
-        gt_csf = (groundtruth_data == 1) * 1
-        dice_csf = dice_itself(seg_csf, gt_csf)
-    
-        seg_gm = (seg_data == 2) * 1
-        gt_gm = (groundtruth_data == 2) * 1
-        dice_gm = dice_itself(seg_gm, gt_gm)
-    
-        seg_wm = (seg_data == 3) * 1
-        gt_wm = (groundtruth_data == 3) * 1
-        dice_wm = dice_itself(seg_wm, gt_wm)
-        
-        return dice_csf, dice_gm, dice_wm
-    
-    def Slice_and_Dice(seg_im, ground_truth, imtype, slice_nr):
-        """
-        Computes the DICE coefficients for the classes of just one slice.
-        """
-    
-        if (imtype=="nifti"):
-           seg_data = seg_im.get_data().copy()
-           groundtruth_data = ground_truth.get_data().copy()
-        elif (imtype=="arr"):
-           seg_data = seg_im.copy()
-           groundtruth_data = ground_truth.copy()
-        
-    
-        seg_csf = (seg_data == 1) * 1
-        gt_csf = (groundtruth_data == 1) * 1
-        dice_csf = dice_itself(seg_csf[:,:,slice_nr], gt_csf[:,:,slice_nr])
-    
-        seg_gm = (seg_data == 2) * 1
-        gt_gm = (groundtruth_data == 2) * 1
-        dice_gm = dice_itself(seg_gm[:,:,slice_nr], gt_gm[:,:,slice_nr])
-    
-        seg_wm = (seg_data == 3) * 1
-        gt_wm = (groundtruth_data == 3) * 1
-        dice_wm = dice_itself(seg_wm[:,:,slice_nr], gt_wm[:,:,slice_nr])
-        
-        print("CSF DICE = {}".format(dice_csf), "GM DICE = {}".format(dice_gm), "WM DICE = {}".format(dice_wm))
     
         
     def init(init_type, flat_label):
@@ -285,12 +288,12 @@ def segmentEM(volume_dir,labels_dir,mask_dir,init_mode,mode,export,atlas=None,MA
     
     # Initialization (random or kmeans)
     flat_label = labeled_img.flatten()
-    init_type = 'MNI'
+    init_type = init_mode
     pp_CSF, pp_GM, pp_WM, mean_CSF, cov_CSF, mean_GM, cov_GM, mean_WM, cov_WM = init(init_type, flat_label) #kmeans #random #MNI
     
     ######################## EM algorithm ############################
     
-    min_err = 1e-6 # 0.001
+    min_err = err # 0.001
     n_steps = 0
     label_distribution = np.array((pp_CSF, pp_GM , pp_WM))
     
