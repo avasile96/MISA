@@ -53,7 +53,7 @@ index = '005'
 # MAX_STEPS = 3
 # err = 1e-3
 steps = [3, 5, 10]
-errors = [1e-3, 13-6]
+errors = [1e-3, 1e-6]
 
 for MAX_STEPS in steps:
     for err in errors:

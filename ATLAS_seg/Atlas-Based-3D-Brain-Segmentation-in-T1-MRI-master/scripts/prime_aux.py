@@ -285,6 +285,30 @@ def computeMNIAtlasProb(export): # alex
     elif (export=='return'):
         return prob_atlasMNI_CSF/prob_atlasMNI_CSF.max(), prob_atlasMNI_WM/prob_atlasMNI_WM.max(), prob_atlasMNI_GM/prob_atlasMNI_GM.max()
 
+def compute_avg_train(export): # alex
+    
+    train_indexes = ['01', '02', '06', '07', '08', '09', '10', 
+                 '11', '12', '13', '14', '15', '17', '36']
+    
+    mock = np.array(sitk.GetArrayFromImage(sitk.ReadImage("../results/training_results/registered_images/"+train_indexes[0]+"/result.1.mhd")))
+    
+    volume = np.zeros([mock.shape[0],mock.shape[1],mock.shape[2],len(train_indexes)])
+
+    for i in range(0,len(train_indexes)):
+        volume[:,:,:,i] = np.array(sitk.GetArrayFromImage(sitk.ReadImage("../results/training_results/registered_images/"+train_indexes[i]+"/result.1.mhd")))
+        
+    avg_train_vol                       =     np.mean(volume, axis=3)
+    
+    
+    if (export=='save'):
+        output_avg_train_vol            = sitk.GetImageFromArray(avg_train_vol)
+        writer                          = sitk.ImageFileWriter()
+        writer.SetFileName('../results/atlas/avg_train_vol.nii')
+        writer.Execute(output_avg_train_vol)
+        
+    elif (export=='return'):
+        return avg_train_vol
+
 
 
 

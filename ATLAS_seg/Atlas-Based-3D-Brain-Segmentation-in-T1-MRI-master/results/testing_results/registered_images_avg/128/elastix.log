@@ -1,0 +1,27 @@
+
+elastix is started at Sat Nov 20 00:41:55 2021.
+
+which elastix:   elastix
+elastix runs at: LAPTOP-UM5DLE49
+  Windows  Personal (x64),  (Build 9200)
+  with 16166 MB memory, and 6 cores @ 2591 MHz.
+-------------------------------------------------------------------------
+
+Running elastix with parameter file 0: ".\parameters\par01a.txt".
+
+Current time: Sat Nov 20 00:41:55 2021.
+Reading the elastix parameters from file ...
+
+ERROR: could not read moving image.
+
+itk::ImageFileReaderException (000000F181EFF0F8)
+Location: "unknown" 
+File: D:\X\src\I\ITK511\Modules\IO\ImageBase\include\itkImageFileReader.hxx
+Line: 133
+Description:  Could not create IO object for reading file .\..\data\training-set\training-images\avg_train_vol.nii
+The file doesn't exist. 
+Filename = .\..\data\training-set\training-images\avg_train_vol.nii
+
+
+
+Errors occurred!
