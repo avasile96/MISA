@@ -103,9 +103,6 @@ def Slice_and_Dice(seg_im, ground_truth, imtype, slice_nr):
     
     
 def segmentEM(volume_dir,labels_dir,mask_dir,init_mode,mode,export,atlas=None,MAX_STEPS =3, err=1e-3):
-
-    
-    
         
     def init(init_type, flat_label):
         """
