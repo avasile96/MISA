@@ -261,6 +261,57 @@ def computeAtlasProb(export):
     elif (export=='return'):
         return prob_atlas_CSF/1, prob_atlas_WM/2, prob_atlas_GM/3
     
+def computeAvgAtlasProb(export):
+    train_indexes = ['000', '001', '002', '006', '007', '008', '009', '010', 
+                 '011', '012', '013', '014', '015', '017', '036']
+    i = 0
+
+    for index in train_indexes:
+        if (i==0):  # Reference Image
+            label         = np.array(sitk.GetArrayFromImage(sitk.ReadImage("../results/atlas/avg_train_vol.nii")))
+            CSF_labels    = np.zeros((label.shape[0],label.shape[1],label.shape[2],len(train_indexes)))
+            WM_labels     = np.zeros((label.shape[0],label.shape[1],label.shape[2],len(train_indexes)))
+            GM_labels     = np.zeros((label.shape[0],label.shape[1],label.shape[2],len(train_indexes)))           
+        else:      # Registered Training Images
+            label       = np.array(sitk.GetArrayFromImage(sitk.ReadImage("../results/training_results/transformed_labels/"+index+"/result.mhd")))
+
+        CSF         = label.copy()
+        CSF[CSF!=1] = 0
+        WM          = label.copy()
+        WM[WM!=2]   = 0
+        GM          = label.copy()
+        GM[GM!=3]   = 0
+            
+        CSF_labels[:,:,:,i] = CSF
+        WM_labels[:,:,:,i]  = WM
+        GM_labels[:,:,:,i]  = GM
+        i += 1
+
+    # Compute Probability Atlases for Each Label 
+    prob_atlas_CSF = np.average(CSF_labels,axis=3)
+    prob_atlas_WM  = np.average(WM_labels,axis=3)
+    prob_atlas_GM  = np.average(GM_labels,axis=3)
+
+    if (export=='save'):
+        output_prob_atlas_CSF        = sitk.GetImageFromArray(prob_atlas_CSF/1)
+        output_prob_atlas_WM         = sitk.GetImageFromArray(prob_atlas_WM/2)
+        output_prob_atlas_GM         = sitk.GetImageFromArray(prob_atlas_GM/3)
+        
+        output_prob_atlas_CSF.CopyInformation(sitk.ReadImage("../results/atlas/avg_train_vol.nii"))
+        output_prob_atlas_WM.CopyInformation(sitk.ReadImage("../results/atlas/avg_train_vol.nii"))
+        output_prob_atlas_GM.CopyInformation(sitk.ReadImage("../results/atlas/avg_train_vol.nii"))
+        
+        writer           = sitk.ImageFileWriter()
+        writer.SetFileName('../results/atlas/prob_atlas_avg_CSF.nii')
+        writer.Execute(output_prob_atlas_CSF)
+        writer.SetFileName('../results/atlas/prob_atlas_avg_WM.nii')
+        writer.Execute(output_prob_atlas_WM)
+        writer.SetFileName('../results/atlas/prob_atlas_avg_GM.nii')
+        writer.Execute(output_prob_atlas_GM)
+        
+    elif (export=='return'):
+        return prob_atlas_CSF/1, prob_atlas_WM/2, prob_atlas_GM/3
+    
 def computeMNIAtlasProb(export): # alex
 
     label             =     np.array(sitk.GetArrayFromImage(sitk.ReadImage("../results/atlas/atlas.nii")))
