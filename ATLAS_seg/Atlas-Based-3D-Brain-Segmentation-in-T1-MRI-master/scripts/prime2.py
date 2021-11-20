@@ -66,7 +66,7 @@ for MAX_STEPS in steps:
         
         # Segmentation via Expectation-Maximization with Probabilistic Atlas Initialization
         mask2, score2   = segmentEM(volume_dir="../data/testing-set/testing-images/1"+index+".nii.gz", labels_dir="../data/testing-set/testing-labels/1"+index+"_3C.nii.gz",
-                                    mask_dir="../data/testing-set/testing-mask/1"+index+"_1C.nii.gz", init_mode="atlas", atlas='training', mode="base", export="return", 
+                                    mask_dir="../data/testing-set/testing-mask/1"+index+"_1C.nii.gz", init_mode="label_prop", atlas='training', mode="base", export="return", 
                                     MAX_STEPS=MAX_STEPS)
         print("DICE: CSF, GM, WM: {}".format(score2))
         

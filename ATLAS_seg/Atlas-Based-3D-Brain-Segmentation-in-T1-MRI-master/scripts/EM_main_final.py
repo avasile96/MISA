@@ -190,7 +190,68 @@ def segmentEM(volume_dir,labels_dir,mask_dir,init_mode,mode,export,atlas=None,MA
             pp_GM = GM_stack.shape[0] / T1T2_stack_nnz.shape[0]
             pp_WM = WM_stack.shape[0] / T1T2_stack_nnz.shape[0]
             
-        elif ('random'):
+        
+            
+        elif (init_type =='MNI'):
+            # getting the label region images
+            CSF_stack = T1T2_stack_nnz[np.argwhere(flat_label == 1)[:,0],:]
+            GM_stack = T1T2_stack_nnz[np.argwhere(flat_label== 2)[:,0],:]
+            WM_stack = T1T2_stack_nnz[np.argwhere(flat_label== 3)[:,0],:]
+            
+            # computing means and coveriences of each region
+            mean_CSF = np.mean(CSF_stack, axis = 0)
+            cov_CSF = np.cov(CSF_stack, rowvar = False)
+            mean_GM = np.mean(GM_stack, axis = 0)
+            cov_GM = np.cov(GM_stack, rowvar = False)
+            mean_WM = np.mean(WM_stack , axis = 0)
+            cov_WM = np.cov(WM_stack , rowvar = False)
+            
+            # Prior_Probabibilities
+            pp_CSF = CSF_stack.shape[0] / T1T2_stack_nnz.shape[0]
+            pp_GM = GM_stack.shape[0] / T1T2_stack_nnz.shape[0]
+            pp_WM = WM_stack.shape[0] / T1T2_stack_nnz.shape[0]
+            
+        elif (init_type =='label_prop'):
+            # getting the label region images
+            
+            CSF_stack = T1T2_stack_nnz[np.argwhere(flat_label == 1)[:,0],:]
+            GM_stack = T1T2_stack_nnz[np.argwhere(flat_label== 2)[:,0],:]
+            WM_stack = T1T2_stack_nnz[np.argwhere(flat_label== 3)[:,0],:]
+            
+            # computing means and coveriences of each region
+            mean_CSF = np.mean(CSF_stack, axis = 0)
+            cov_CSF = np.cov(CSF_stack, rowvar = False)
+            mean_GM = np.mean(GM_stack, axis = 0)
+            cov_GM = np.cov(GM_stack, rowvar = False)
+            mean_WM = np.mean(WM_stack , axis = 0)
+            cov_WM = np.cov(WM_stack , rowvar = False)
+            
+            # Prior_Probabibilities
+            pp_CSF = CSF_stack.shape[0] / T1T2_stack_nnz.shape[0]
+            pp_GM = GM_stack.shape[0] / T1T2_stack_nnz.shape[0]
+            pp_WM = WM_stack.shape[0] / T1T2_stack_nnz.shape[0]
+            
+        elif (init_type =='tissue_models'):
+            # getting the label region images
+            
+            CSF_stack = T1T2_stack_nnz[np.argwhere(flat_label == 1)[:,0],:]
+            GM_stack = T1T2_stack_nnz[np.argwhere(flat_label== 2)[:,0],:]
+            WM_stack = T1T2_stack_nnz[np.argwhere(flat_label== 3)[:,0],:]
+            
+            # computing means and coveriences of each region
+            mean_CSF = np.mean(CSF_stack, axis = 0)
+            cov_CSF = np.cov(CSF_stack, rowvar = False)
+            mean_GM = np.mean(GM_stack, axis = 0)
+            cov_GM = np.cov(GM_stack, rowvar = False)
+            mean_WM = np.mean(WM_stack , axis = 0)
+            cov_WM = np.cov(WM_stack , rowvar = False)
+            
+            # Prior_Probabibilities
+            pp_CSF = CSF_stack.shape[0] / T1T2_stack_nnz.shape[0]
+            pp_GM = GM_stack.shape[0] / T1T2_stack_nnz.shape[0]
+            pp_WM = WM_stack.shape[0] / T1T2_stack_nnz.shape[0]
+            
+        else:
             ### Random Initialization
             rand_init_vect = np.random.randint(1,4,T1T2_stack_nnz.shape[0])
             
@@ -212,40 +273,19 @@ def segmentEM(volume_dir,labels_dir,mask_dir,init_mode,mode,export,atlas=None,MA
             pp_GM = GM_stack.shape[0] / T1T2_stack_nnz.shape[0]
             pp_WM = WM_stack.shape[0] / T1T2_stack_nnz.shape[0]
             
-        elif ('MNI'):
-            
-            # getting the label region images
-            CSF_stack = T1T2_stack_nnz[np.argwhere(flat_label == 1)[:,0],:]
-            GM_stack = T1T2_stack_nnz[np.argwhere(flat_label== 2)[:,0],:]
-            WM_stack = T1T2_stack_nnz[np.argwhere(flat_label== 3)[:,0],:]
-            
-            # computing means and coveriences of each region
-            mean_CSF = np.mean(CSF_stack, axis = 0)
-            cov_CSF = np.cov(CSF_stack, rowvar = False)
-            mean_GM = np.mean(GM_stack, axis = 0)
-            cov_GM = np.cov(GM_stack, rowvar = False)
-            mean_WM = np.mean(WM_stack , axis = 0)
-            cov_WM = np.cov(WM_stack , rowvar = False)
-            
-            # Prior_Probabibilities
-            pp_CSF = CSF_stack.shape[0] / T1T2_stack_nnz.shape[0]
-            pp_GM = GM_stack.shape[0] / T1T2_stack_nnz.shape[0]
-            pp_WM = WM_stack.shape[0] / T1T2_stack_nnz.shape[0]
-            
         return pp_CSF, pp_GM, pp_WM, mean_CSF, cov_CSF, mean_GM, cov_GM, mean_WM, cov_WM
         
     ####################### MAIN #############################
-    index = '039'
-    volume_dir="../data/testing-set/testing-images/1"+index+".nii.gz"
-    labels_dir="../data/testing-set/testing-labels/1"+index+"_3C.nii.gz"
-    mask_dir="../data/testing-set/testing-mask/1"+index+"_1C.nii.gz"
+    # index = '039'
+    # volume_dir="../data/testing-set/testing-images/1"+index+".nii.gz"
+    # labels_dir="../data/testing-set/testing-labels/1"+index+"_3C.nii.gz"
+    # mask_dir="../data/testing-set/testing-mask/1"+index+"_1C.nii.gz"
     slice_nr = 200
     ############## Loading data ###################
     volumeITK                = sitk.ReadImage(volume_dir, sitk.sitkFloat32) # registered image
     volume                   = np.array(sitk.GetArrayFromImage(volumeITK))
     # volume                   = volume/volume.max() * 255
     ############## Loading data ###################
-    brain_data_path ="./P2_data/2" # indicating data location
     
     # Load T1 image
     T1_img=volume

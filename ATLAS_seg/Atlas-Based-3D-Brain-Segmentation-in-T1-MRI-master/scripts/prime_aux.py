@@ -6,8 +6,8 @@ from skimage import io
 warnings.filterwarnings("ignore")
 
 
-
-def volumeIntenProb(vol,mask):
+# Tissue Model Segmentation
+def volumeIntenProb(vol,mask): 
     # Load Volume/Mask
     volume        = np.array(sitk.GetArrayFromImage(sitk.ReadImage(vol, sitk.sitkFloat32))).astype(np.int16)
     masked_volume = np.multiply(volume,np.array(sitk.GetArrayFromImage(sitk.ReadImage(mask))))
@@ -98,6 +98,7 @@ def labelPropg(CSF,WM,GM,mask,export,mode='prob_atlas'):
         max_index        = np.argmax(np.concatenate((prob_CSF, prob_WM, prob_GM),axis=3),axis=3)+1
         
         # Maskout External Label Predictions
+        # predicted_mask = max_index.astype(np.uint8)
         predicted_mask   = np.multiply(max_index,bin_mask).astype(np.uint8)
         
         #saving routine
