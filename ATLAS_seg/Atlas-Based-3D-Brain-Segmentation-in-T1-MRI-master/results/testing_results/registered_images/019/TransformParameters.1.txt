@@ -1,0 +1,32 @@
+(Transform "AffineTransform")
+(NumberOfParameters 12)
+(TransformParameters 1.000714 -0.000951 0.002774 0.002515 0.999906 -0.002184 -0.004158 -0.000399 1.000042 0.221115 -0.034772 -0.131215)
+(InitialTransformParametersFileName ".\..\results\testing_results\registered_images\019\TransformParameters.0.txt")
+(UseBinaryFormatForTransformationParameters "false")
+(HowToCombineTransforms "Compose")
+
+// Image specific
+(FixedImageDimension 3)
+(MovingImageDimension 3)
+(FixedInternalImagePixelType "float")
+(MovingInternalImagePixelType "float")
+(Size 256 305 256)
+(Index 0 0 0)
+(Spacing 1.0000000000 1.0000000000 1.0000000000)
+(Origin -127.5000000000 127.5000000000 -152.0000000000)
+(Direction 1.0000000000 0.0000000000 0.0000000000 0.0000000000 -1.0000000000 0.0000000000 0.0000000000 0.0000000000 1.0000000000)
+(UseDirectionCosines "true")
+
+// AdvancedAffineTransform specific
+(CenterOfRotationPoint -0.5036069657 -20.8731625033 36.6701153339)
+
+// ResampleInterpolator specific
+(ResampleInterpolator "FinalBSplineInterpolator")
+(FinalBSplineInterpolationOrder 3)
+
+// Resampler specific
+(Resampler "DefaultResampler")
+(DefaultPixelValue 0.000000)
+(ResultImageFormat "mhd")
+(ResultImagePixelType "short")
+(CompressResultImage "false")
