@@ -96,12 +96,63 @@ def get_segnet(img_size=PATCH_SIZE, n_classes=N_CLASSES, n_input_channels=N_INPU
 
     return model
 
-segnet = get_segnet(
+def get_unet(img_size=PATCH_SIZE, n_classes=N_CLASSES, n_input_channels=N_INPUT_CHANNELS, scale=1):
+    inputs = keras.Input(shape=img_size + (n_input_channels, ))
+
+    # Encoding path
+    conv1 = layers.Conv2D(32*scale, (3, 3), padding="same", activation='relu')(inputs)
+    drop1 = layers.Dropout(rate=0.2)(conv1, training=True)
+    max1 = layers.MaxPooling2D((2, 2))(drop1)
+
+    conv2 = layers.Conv2D(64*scale, (3, 3), padding="same", activation='relu')(max1)
+    drop2 = layers.Dropout(rate=0.2)(conv2, training=True)
+    max2 = layers.MaxPooling2D((2, 2))(drop2)
+
+    conv3 = layers.Conv2D(128*scale, (3, 3), padding="same", activation='relu')(max2)
+    drop3 = layers.Dropout(rate=0.2)(conv3, training=True)
+    max3 = layers.MaxPooling2D((2, 2))(drop3)
+
+    lat = layers.Conv2D(256*scale, (3, 3), padding="same", activation='relu')(max3)
+    drop4 = layers.Dropout(rate=0.2)(lat, training=True)
+
+    # Decoding path
+    up1 = layers.UpSampling2D((2, 2))(drop4)
+    concat1 = layers.concatenate([conv3, up1], axis=-1)
+    conv4 = layers.Conv2D(128*scale, (3, 3), padding="same", activation='relu')(concat1)
+    drop5 = layers.Dropout(rate=0.2)(conv4, training=True)
+    
+    up2 = layers.UpSampling2D((2, 2))(drop5)
+    concat2 = layers.concatenate([conv2, up2], axis=-1)
+    conv5 = layers.Conv2D(64*scale, (3, 3), padding="same", activation='relu')(concat2)
+    drop6 = layers.Dropout(rate=0.2)(conv5, training=True)
+    
+    up3 = layers.UpSampling2D((2, 2))(drop6)
+    concat3 = layers.concatenate([conv1, up3], axis=-1)
+
+    conv6 = layers.Conv2D(32*scale, (3, 3), padding="same", activation='relu')(concat3)
+    drop7 = layers.Dropout(rate=0.2)(conv6, training=True)
+
+    outputs = layers.Conv2D(n_classes, (1, 1), activation="softmax")(drop7)
+
+    model = keras.Model(inputs, outputs)
+
+    return model
+
+# segnet = get_segnet(
+#     img_size=(IMAGE_SIZE[1], IMAGE_SIZE[2]),
+#     n_classes=N_CLASSES,
+#     n_input_channels=N_INPUT_CHANNELS)
+# segnet.compile(optimizer=OPTIMISER, loss=LOSS)
+# segnet.load_weights('model.h5')
+
+u_net = get_unet(
     img_size=(IMAGE_SIZE[1], IMAGE_SIZE[2]),
     n_classes=N_CLASSES,
     n_input_channels=N_INPUT_CHANNELS)
-segnet.compile(optimizer=OPTIMISER, loss=LOSS)
-segnet.load_weights('model.h5')
+u_net.compile(optimizer=OPTIMISER, loss=LOSS)
+u_net.load_weights('model.h5')
+
+
 
 """**Prepare test data**"""
 
@@ -113,7 +164,9 @@ testing_labels_processed_cat = tf.keras.utils.to_categorical(
 
 # """**Predict labels for test data**"""
 
-prediction = segnet.predict(x=testing_volumes_processed)
+# prediction = segnet.predict(x=testing_volumes_processed)
+prediction = u_net.predict(x=testing_volumes_processed)
+
 
 del testing_volumes
 gc.collect()
