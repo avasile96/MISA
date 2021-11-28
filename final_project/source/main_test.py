@@ -150,7 +150,7 @@ u_net = get_unet(
     n_classes=N_CLASSES,
     n_input_channels=N_INPUT_CHANNELS)
 u_net.compile(optimizer=OPTIMISER, loss=LOSS)
-u_net.load_weights('model.h5')
+u_net.load_weights('unet.h5')
 
 
 
