@@ -10,6 +10,7 @@ Created on Sun Nov 28 20:33:18 2021
 import numpy as np
 import nibabel as nib
 import matplotlib.pyplot as plt # plotting purposes
+import cv2
 
 import tensorflow as tf
 
@@ -17,12 +18,12 @@ from tensorflow import keras
 from tensorflow.keras import layers
 
 import os
-
+import gc
 
 """**Define parameters**"""
 
 # dataset parameters
-FNAME_PATTERN = '../TrainingValidationTestSets/Training_Set/{}/{}.nii.gz'
+FNAME_PATTERN = '../TrainingValidationTestSets/{}/{}/{}.nii.gz'
 N_VOLUMES = 10
 IMAGE_SIZE = (256, 128, 256)
 
@@ -49,17 +50,17 @@ def load_data(n_volumes=N_VOLUMES, image_size=IMAGE_SIZE, fname_pattern=FNAME_PA
   volumes = np.zeros((n_volumes, *image_size, 1))
   labels = np.zeros((n_volumes, *image_size, 1))
   counter = 0
-  for i in os.listdir('../TrainingValidationTestSets/Training_Set/'):
-    img_data = nib.load(fname_pattern.format(i,i))
+  for i in os.listdir('../TrainingValidationTestSets/{}/'.format(case)):
+    img_data = nib.load(fname_pattern.format(case,i,i))
     volumes[counter] = img_data.get_fdata()
 
-    seg_data = nib.load(fname_pattern.format(i,i+'_seg'))
+    seg_data = nib.load(fname_pattern.format(case,i,i+'_seg'))
     labels[counter] = seg_data.get_fdata()
     counter += 1
   return (volumes, labels)
 
 """**Split into training, validation and testing**"""
-(testing_volumes, testing_labels) = load_data(N_VOLUMES, IMAGE_SIZE, FNAME_PATTERN, case = 'Test_Set')
+(testing_volumes, testing_labels) = load_data(N_VOLUMES, IMAGE_SIZE, FNAME_PATTERN, case = 'Validation_Set')
 
 
 """**Define SegNet architecture**"""
@@ -107,25 +108,31 @@ segnet.load_weights('model.h5')
 testing_volumes_processed = testing_volumes.reshape([-1, IMAGE_SIZE[1], IMAGE_SIZE[2], 1])
 testing_labels_processed = testing_labels.reshape([-1, IMAGE_SIZE[1], IMAGE_SIZE[2], 1])
 
-testing_labels_processed = tf.keras.utils.to_categorical(
+testing_labels_processed_cat = tf.keras.utils.to_categorical(
     testing_labels_processed, num_classes=4, dtype='float32')
 
-"""**Predict labels for test data**"""
+# """**Predict labels for test data**"""
 
 prediction = segnet.predict(x=testing_volumes_processed)
 
-prediction = np.argmax(prediction, axis=3)
+del testing_volumes
+gc.collect()
 
-plt.imshow(prediction[:, :, 150])
+
+prediction = np.argmax(prediction, axis=3)
+testing_labels_processed_cat = np.argmax(testing_labels_processed_cat, axis=3)
+# cv2.imshow('damnbro', np.array(prediction[150, :, :],dtype = np.uint8))
 
 """**Compute DSC for test data**"""
 
 def compute_dice(prediction, labels) :
   prediction = prediction.squeeze()
   labels = labels.squeeze()
+  
+  
   for c in np.unique(prediction) :
-    intersection = np.logical_and(prediction == c, labels==c).sum()
+    intersection = np.logical_and(prediction == c, labels == c).sum()
     union = (prediction == c).sum() + (labels==c).sum()
     print(f'Dice coefficient class {c} equal to {2 * intersection / union : .2f}')
 
-compute_dice(prediction, testing_labels)
+compute_dice(prediction, testing_labels_processed_cat)

@@ -41,7 +41,7 @@ import os
 """**Define parameters**"""
 
 # dataset parameters
-FNAME_PATTERN = '../TrainingValidationTestSets/Training_Set/{}/{}.nii.gz'
+FNAME_PATTERN = '../TrainingValidationTestSets/{}/{}/{}.nii.gz'
 N_VOLUMES = 10
 IMAGE_SIZE = (256, 128, 256)
 
@@ -58,7 +58,7 @@ CONTENT_THRESHOLD = 0.3
 N_EPOCHS = 10
 BATCH_SIZE = 32
 PATIENCE = 10
-MODEL_FNAME_PATTERN = '/model.h5'
+MODEL_FNAME_PATTERN = './model.h5'
 OPTIMISER = 'Adam'
 LOSS = 'categorical_crossentropy'
 
@@ -96,25 +96,68 @@ def get_segnet(img_size=PATCH_SIZE, n_classes=N_CLASSES, n_input_channels=N_INPU
 
     return model
 
+def get_unet(img_size=PATCH_SIZE, n_classes=N_CLASSES, n_input_channels=N_INPUT_CHANNELS, scale=1):
+    inputs = keras.Input(shape=img_size + (n_input_channels, ))
+
+    # Encoding path
+    conv1 = layers.Conv2D(32*scale, (3, 3), padding="same", activation='relu')(inputs)
+    drop1 = layers.Dropout(rate=0.2)(conv1, training=True)
+    max1 = layers.MaxPooling2D((2, 2))(drop1)
+
+    conv2 = layers.Conv2D(64*scale, (3, 3), padding="same", activation='relu')(max1)
+    drop2 = layers.Dropout(rate=0.2)(conv2, training=True)
+    max2 = layers.MaxPooling2D((2, 2))(drop2)
+
+    conv3 = layers.Conv2D(128*scale, (3, 3), padding="same", activation='relu')(max2)
+    drop3 = layers.Dropout(rate=0.2)(conv3, training=True)
+    max3 = layers.MaxPooling2D((2, 2))(drop3)
+
+    lat = layers.Conv2D(256*scale, (3, 3), padding="same", activation='relu')(max3)
+    drop4 = layers.Dropout(rate=0.2)(lat, training=True)
+
+    # Decoding path
+    up1 = layers.UpSampling2D((2, 2))(drop4)
+    concat1 = layers.concatenate([conv3, up1], axis=-1)
+    conv4 = layers.Conv2D(128*scale, (3, 3), padding="same", activation='relu')(concat1)
+    drop5 = layers.Dropout(rate=0.2)(conv4, training=True)
+    
+    up2 = layers.UpSampling2D((2, 2))(drop5)
+    concat2 = layers.concatenate([conv2, up2], axis=-1)
+    conv5 = layers.Conv2D(64*scale, (3, 3), padding="same", activation='relu')(concat2)
+    drop6 = layers.Dropout(rate=0.2)(conv5, training=True)
+    
+    up3 = layers.UpSampling2D((2, 2))(drop6)
+    concat3 = layers.concatenate([conv1, up3], axis=-1)
+
+    conv6 = layers.Conv2D(32*scale, (3, 3), padding="same", activation='relu')(concat3)
+    drop7 = layers.Dropout(rate=0.2)(conv6, training=True)
+
+    outputs = layers.Conv2D(n_classes, (1, 1), activation="softmax")(drop7)
+
+    model = keras.Model(inputs, outputs)
+
+    return model
+
 """**Load data**"""
 
 def load_data(n_volumes=N_VOLUMES, image_size=IMAGE_SIZE, fname_pattern=FNAME_PATTERN, case = 'Training_Set') :
   volumes = np.zeros((n_volumes, *image_size, 1))
   labels = np.zeros((n_volumes, *image_size, 1))
   counter = 0
-  for i in os.listdir('../TrainingValidationTestSets/Training_Set/'):
-    img_data = nib.load(fname_pattern.format(i,i))
+  for i in os.listdir('../TrainingValidationTestSets/{}/'.format(case)):
+    img_data = nib.load(fname_pattern.format(case,i,i))
     volumes[counter] = img_data.get_fdata()
 
-    seg_data = nib.load(fname_pattern.format(i,i+'_seg'))
+    seg_data = nib.load(fname_pattern.format(case,i,i+'_seg'))
     labels[counter] = seg_data.get_fdata()
     counter += 1
   return (volumes, labels)
 
+
 """**Split into training, validation and testing**"""
 (training_volumes, training_labels) = load_data(N_VOLUMES, IMAGE_SIZE, FNAME_PATTERN, case = 'Training_Set')
 (validation_volumes, validation_labels) = load_data(N_VOLUMES, IMAGE_SIZE, FNAME_PATTERN, case = 'Validation_Set')
-(testing_volumes, testing_labels) = load_data(N_VOLUMES, IMAGE_SIZE, FNAME_PATTERN, case = 'Test_Set')
+# (testing_volumes, testing_labels) = load_data(N_VOLUMES, IMAGE_SIZE, FNAME_PATTERN, case = 'Test_Set')
 
 """**Pre-process data**"""
 
@@ -168,30 +211,7 @@ def extract_useful_patches(
 # extract patches from validation set
 (validation_patches, validation_patches_seg) = extract_useful_patches(validation_volumes, validation_labels)
 
-"""**Instantiate SegNet model and train it**
 
-*   When/how do we stop training?
-*   Should we use validation split in keras?
-*   How large should the batch size be?
-"""
-
-segnet = get_segnet()
-segnet.compile(optimizer=OPTIMISER, loss=LOSS)
-h = segnet.fit(
-    x=training_patches,
-    y=training_patches_seg,
-    validation_data=(validation_patches, validation_patches_seg),
-    batch_size=BATCH_SIZE,
-    epochs=N_EPOCHS,
-    verbose=1)
-
-"""We could stop training when validation loss increases substantially"""
-
-plt.figure()
-plt.plot(range(N_EPOCHS), h.history['loss'], label='loss')
-plt.plot(range(N_EPOCHS), h.history['val_loss'], label='val_loss')
-plt.legend()
-plt.show()
 
 """Using callbacks to stop training and avoid overfitting
 
@@ -207,9 +227,20 @@ my_callbacks = [
     tf.keras.callbacks.ModelCheckpoint(filepath=MODEL_FNAME_PATTERN, save_best_only=True)
 ]
 
-segnet = get_segnet()
-segnet.compile(optimizer=OPTIMISER, loss=LOSS)
-segnet.fit(
+# segnet = get_segnet()
+# segnet.compile(optimizer=OPTIMISER, loss=LOSS)
+# h = segnet.fit(
+#     x=training_patches, 
+#     y=training_patches_seg,
+#     validation_data=(validation_patches, validation_patches_seg),
+#     batch_size=BATCH_SIZE,
+#     epochs=N_EPOCHS,
+#     callbacks=my_callbacks,
+#     verbose=1)
+
+u_net = get_unet()
+u_net.compile(optimizer=OPTIMISER, loss=LOSS)
+h = u_net.fit(
     x=training_patches, 
     y=training_patches_seg,
     validation_data=(validation_patches, validation_patches_seg),
@@ -218,3 +249,11 @@ segnet.fit(
     callbacks=my_callbacks,
     verbose=1)
 
+
+"""We could stop training when validation loss increases substantially"""
+
+plt.figure()
+plt.plot(range(N_EPOCHS), h.history['loss'], label='loss')
+plt.plot(range(N_EPOCHS), h.history['val_loss'], label='val_loss')
+plt.legend()
+plt.show()
