@@ -36,23 +36,20 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
+import os
+
 """**Define parameters**"""
 
 # dataset parameters
-FNAME_PATTERN = '/content/drive/MyDrive/iSeg2019-Training/iSeg2019-Training/subject-{}-{}.hdr'
+FNAME_PATTERN = '../TrainingValidationTestSets/Training_Set/{}/{}.nii.gz'
 N_VOLUMES = 10
-IMAGE_SIZE = (144, 192, 256)
+IMAGE_SIZE = (256, 128, 256)
 
 # network parameters
 N_CLASSES = 4
 N_INPUT_CHANNELS = 1
 PATCH_SIZE = (32, 32)
 PATCH_STRIDE = (32, 32)
-
-# training, validation, test parameters
-TRAINING_VOLUMES = [0, 1, 2, 3, 4, 5, 6]
-VALIDATION_VOLUMES = [7, 8]
-TEST_VOLUMES = [9]
 
 # data preparation parameters
 CONTENT_THRESHOLD = 0.3
@@ -101,34 +98,23 @@ def get_segnet(img_size=PATCH_SIZE, n_classes=N_CLASSES, n_input_channels=N_INPU
 
 """**Load data**"""
 
-def load_data(n_volumes=N_VOLUMES, image_size=IMAGE_SIZE, fname_pattern=FNAME_PATTERN) :
-  T1_volumes = np.zeros((n_volumes, *image_size, 1))
-  T2_volumes = np.zeros((n_volumes, *image_size, 1))
+def load_data(n_volumes=N_VOLUMES, image_size=IMAGE_SIZE, fname_pattern=FNAME_PATTERN, case = 'Training_Set') :
+  volumes = np.zeros((n_volumes, *image_size, 1))
   labels = np.zeros((n_volumes, *image_size, 1))
-  for i in range(n_volumes) :
-    img_data = nib.load(fname_pattern.format(i+1, 'T1'))
-    T1_volumes[i] = img_data.get_fdata()
+  counter = 0
+  for i in os.listdir('../TrainingValidationTestSets/Training_Set/'):
+    img_data = nib.load(fname_pattern.format(i,i))
+    volumes[counter] = img_data.get_fdata()
 
-    img_data = nib.load(fname_pattern.format(i+1, 'T2'))
-    T2_volumes[i] = img_data.get_fdata()
-
-    seg_data = nib.load(fname_pattern.format(i+1, 'label'))
-    labels[i] = seg_data.get_fdata()
-
-  return (T1_volumes, T2_volumes, labels)
-
-(T1_volumes, _, labels) = load_data()
+    seg_data = nib.load(fname_pattern.format(i,i+'_seg'))
+    labels[counter] = seg_data.get_fdata()
+    counter += 1
+  return (volumes, labels)
 
 """**Split into training, validation and testing**"""
-
-training_volumes_T1 = T1_volumes[TRAINING_VOLUMES]
-training_labels = labels[TRAINING_VOLUMES]
-
-validation_volumes_T1 = T1_volumes[VALIDATION_VOLUMES]
-validation_labels = labels[VALIDATION_VOLUMES]
-
-testing_volumes_T1 = T1_volumes[TEST_VOLUMES]
-testing_labels = labels[TEST_VOLUMES]
+(training_volumes, training_labels) = load_data(N_VOLUMES, IMAGE_SIZE, FNAME_PATTERN, case = 'Training_Set')
+(validation_volumes, validation_labels) = load_data(N_VOLUMES, IMAGE_SIZE, FNAME_PATTERN, case = 'Validation_Set')
+(testing_volumes, testing_labels) = load_data(N_VOLUMES, IMAGE_SIZE, FNAME_PATTERN, case = 'Test_Set')
 
 """**Pre-process data**"""
 
@@ -177,10 +163,10 @@ def extract_useful_patches(
   return (vol_patches, seg_patches)
 
 # extract patches from training set
-(training_patches_T1, training_patches_seg) = extract_useful_patches(training_volumes_T1, training_labels)
+(training_patches, training_patches_seg) = extract_useful_patches(training_volumes, training_labels)
 
 # extract patches from validation set
-(validation_patches_T1, validation_patches_seg) = extract_useful_patches(validation_volumes_T1, validation_labels)
+(validation_patches, validation_patches_seg) = extract_useful_patches(validation_volumes, validation_labels)
 
 """**Instantiate SegNet model and train it**
 
@@ -192,9 +178,9 @@ def extract_useful_patches(
 segnet = get_segnet()
 segnet.compile(optimizer=OPTIMISER, loss=LOSS)
 h = segnet.fit(
-    x=training_patches_T1,
+    x=training_patches,
     y=training_patches_seg,
-    validation_data=(validation_patches_T1, validation_patches_seg),
+    validation_data=(validation_patches, validation_patches_seg),
     batch_size=BATCH_SIZE,
     epochs=N_EPOCHS,
     verbose=1)
@@ -224,9 +210,9 @@ my_callbacks = [
 segnet = get_segnet()
 segnet.compile(optimizer=OPTIMISER, loss=LOSS)
 segnet.fit(
-    x=training_patches_T1, 
+    x=training_patches, 
     y=training_patches_seg,
-    validation_data=(validation_patches_T1, validation_patches_seg),
+    validation_data=(validation_patches, validation_patches_seg),
     batch_size=BATCH_SIZE,
     epochs=N_EPOCHS,
     callbacks=my_callbacks,
@@ -243,7 +229,7 @@ segnet.load_weights('model.h5')
 
 """**Prepare test data**"""
 
-testing_volumes_T1_processed = testing_volumes_T1.reshape([-1, IMAGE_SIZE[1], IMAGE_SIZE[2], 1])
+testing_volumes_processed = testing_volumes.reshape([-1, IMAGE_SIZE[1], IMAGE_SIZE[2], 1])
 testing_labels_processed = testing_labels.reshape([-1, IMAGE_SIZE[1], IMAGE_SIZE[2], 1])
 
 testing_labels_processed = tf.keras.utils.to_categorical(
@@ -251,7 +237,7 @@ testing_labels_processed = tf.keras.utils.to_categorical(
 
 """**Predict labels for test data**"""
 
-prediction = segnet.predict(x=testing_volumes_T1_processed)
+prediction = segnet.predict(x=testing_volumes_processed)
 
 prediction = np.argmax(prediction, axis=3)
 
