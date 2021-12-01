@@ -1,2 +1,0 @@
-https://elastix.lumc.nl/doxygen/index.html
-https://github.com/InsightSoftwareConsortium/ITKElastix/tree/master/examples
