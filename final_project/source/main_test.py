@@ -174,7 +174,7 @@ gc.collect()
 
 prediction = np.argmax(prediction, axis=3)
 testing_labels_processed_cat = np.argmax(testing_labels_processed_cat, axis=3)
-# cv2.imshow('damnbro', np.array(prediction[150, :, :],dtype = np.uint8))
+
 
 """**Compute DSC for test data**"""
 
@@ -189,3 +189,22 @@ def compute_dice(prediction, labels) :
     print(f'Dice coefficient class {c} equal to {2 * intersection / union : .2f}')
 
 compute_dice(prediction, testing_labels_processed_cat)
+
+cv2.imwrite('damnbro.png', np.array(prediction[150, :, :],dtype = np.uint8))
+cv2.imwrite('labels.png', np.array(testing_labels_processed_cat[150, :, :],dtype = np.uint8))
+
+N_RUNS = 10
+# predictions = np.zeros(IMAGE_SIZE+(N_CLASSES, N_RUNS, ))
+predictions = []
+for run in range(N_RUNS) :
+  predictions.append(u_net.predict(x=testing_volumes_processed))
+
+mean_prediction = np.array(predictions).mean(axis=-1)
+std_prediction = np.array(predictions).std(axis=-1)
+
+
+cv2.imwrite('damnbro.png', np.array(prediction[150, :, :],dtype = np.uint8))
+# plt.imshow(std_prediction[:, :, 150, 2])
+
+
+
