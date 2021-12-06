@@ -62,7 +62,7 @@ for nn = 1:N_scan
         [M, C]=sortMemC(M, C);
         PC2d=zeros(size(Img3D(:,:,1)));
         PC3d=zeros(DimX1, DimY1, DimZ1);
-        N_slc=70;
+        N_slc=90;
         for k=1:N_region
             PC2d = PC2d +  tissueLabel(k)*M(:,:,N_slc,k);
         end
