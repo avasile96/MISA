@@ -26,7 +26,7 @@ N_region = 3; %% number of tissue types, e.g. WM, GM, CSF
 tissueLabel=[1, 2, 3];
 
 %str_vector{1} = 'F:\DISCO_DURO\Mixto\Subjects\GitHub\MISA\l1_preprocessing\braindata\t1_icbm_normal_1mm_pn5_rf20.nii';   % input a sequence of image file names
-str_vector{1} = 'F:\DISCO_DURO\Mixto\Subjects\GitHub\MISA\final_project\TrainingValidationTestSets\Training_Set\IBSR_01\IBSR_01.nii';   % input a sequence of image file names
+str_vector{1} = 'F:\DISCO_DURO\Mixto\Subjects\GitHub\MISA\final_project\TrainingValidationTestSets\Training_Set\IBSR_03\IBSR_03.nii';   % input a sequence of image file names
 % str_vector{2} = 'brainweb_byte_B3N1.nii';
 
 
