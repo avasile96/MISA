@@ -23,8 +23,8 @@ import gc
 """**Define parameters**"""
 
 # dataset parameters
-FNAME_PATTERN = '../TrainingValidationTestSets/{}/{}/{}.nii.gz'
-N_VOLUMES = 10
+FNAME_PATTERN = '../TrainingValidationTestSets/{}/{}/{}.nii'
+N_VOLUMES = 5
 IMAGE_SIZE = (256, 128, 256)
 
 # network parameters
@@ -40,18 +40,18 @@ CONTENT_THRESHOLD = 0.3
 N_EPOCHS = 10
 BATCH_SIZE = 32
 PATIENCE = 10
-MODEL_FNAME_PATTERN = 'model.h5'
+MODEL_FNAME_PATTERN = 'model_bc.h5'
 OPTIMISER = 'Adam'
 LOSS = 'categorical_crossentropy'
 
 """**Load data**"""
 
 def load_data(n_volumes=N_VOLUMES, image_size=IMAGE_SIZE, fname_pattern=FNAME_PATTERN, case = 'Training_Set') :
-  volumes = np.zeros((n_volumes, *image_size, 1))
+  volumes = np.zeros((n_volumes, *image_size))
   labels = np.zeros((n_volumes, *image_size, 1))
   counter = 0
   for i in os.listdir('../TrainingValidationTestSets/{}/'.format(case)):
-    img_data = nib.load(fname_pattern.format(case,i,i))
+    img_data = nib.load(fname_pattern.format(case,i,i+'_bc'))
     volumes[counter] = img_data.get_fdata()
 
     seg_data = nib.load(fname_pattern.format(case,i,i+'_seg'))
@@ -181,12 +181,14 @@ testing_labels_processed_cat = np.argmax(testing_labels_processed_cat, axis=3)
 def compute_dice(prediction, labels) :
   prediction = prediction.squeeze()
   labels = labels.squeeze()
-  
+  dices = []
   
   for c in np.unique(prediction) :
     intersection = np.logical_and(prediction == c, labels == c).sum()
     union = (prediction == c).sum() + (labels==c).sum()
-    print(f'Dice coefficient class {c} equal to {2 * intersection / union : .2f}')
+    dice = 2 * intersection / union
+    dices.append(dice)
+    print(f'Dice coefficient class {c} equal to { dice : .2f}')
 
 compute_dice(prediction, testing_labels_processed_cat)
 
@@ -203,7 +205,7 @@ mean_prediction = np.array(predictions).mean(axis=-1)
 std_prediction = np.array(predictions).std(axis=-1)
 
 
-cv2.imwrite('damnbro.png', np.array(prediction[150, :, :],dtype = np.uint8))
+# cv2.imwrite('damnbro.png', np.array(prediction[150, :, :],dtype = np.uint8))
 # plt.imshow(std_prediction[:, :, 150, 2])
 
 

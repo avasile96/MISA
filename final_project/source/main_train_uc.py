@@ -41,7 +41,8 @@ import os
 """**Define parameters**"""
 
 # dataset parameters
-FNAME_PATTERN = '../TrainingValidationTestSets/{}/{}/{}.nii.gz'
+# FNAME_PATTERN = '../TrainingValidationTestSets/{}/{}/{}.nii.gz'
+FNAME_PATTERN = '../TrainingValidationTestSets/{}/{}/{}.nii'
 N_VOLUMES = 10
 IMAGE_SIZE = (256, 128, 256)
 
@@ -58,7 +59,8 @@ CONTENT_THRESHOLD = 0.3
 N_EPOCHS = 10
 BATCH_SIZE = 32
 PATIENCE = 10
-MODEL_FNAME_PATTERN = './model.h5'
+# MODEL_FNAME_PATTERN = './model.h5'
+MODEL_FNAME_PATTERN = './model_bc.h5'
 OPTIMISER = 'Adam'
 LOSS = 'categorical_crossentropy'
 
@@ -141,11 +143,11 @@ def get_unet(img_size=PATCH_SIZE, n_classes=N_CLASSES, n_input_channels=N_INPUT_
 """**Load data**"""
 
 def load_data(n_volumes=N_VOLUMES, image_size=IMAGE_SIZE, fname_pattern=FNAME_PATTERN, case = 'Training_Set') :
-  volumes = np.zeros((n_volumes, *image_size, 1))
+  volumes = np.zeros((n_volumes, *image_size))
   labels = np.zeros((n_volumes, *image_size, 1))
   counter = 0
   for i in os.listdir('../TrainingValidationTestSets/{}/'.format(case)):
-    img_data = nib.load(fname_pattern.format(case,i,i))
+    img_data = nib.load(fname_pattern.format(case,i,i+'_bc'))
     volumes[counter] = img_data.get_fdata()
 
     seg_data = nib.load(fname_pattern.format(case,i,i+'_seg'))
@@ -205,8 +207,7 @@ def extract_useful_patches(
   
   return (vol_patches, seg_patches)
 
-import numpy as np
-import random
+
 from scipy.ndimage import gaussian_filter
 
 class DataGenerator(keras.utils.Sequence):
