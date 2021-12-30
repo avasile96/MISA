@@ -40,7 +40,8 @@ CONTENT_THRESHOLD = 0.3
 N_EPOCHS = 10
 BATCH_SIZE = 32
 PATIENCE = 10
-MODEL_FNAME_PATTERN = 'model_bc.h5'
+# MODEL_FNAME_PATTERN = 'model_bc.h5'
+MODEL_FNAME_PATTERN = 'model.h5'
 OPTIMISER = 'Adam'
 LOSS = 'categorical_crossentropy'
 
@@ -192,7 +193,7 @@ def compute_dice(prediction, labels) :
 
 compute_dice(prediction, testing_labels_processed_cat)
 
-cv2.imwrite('damnbro.png', np.array(prediction[150, :, :],dtype = np.uint8))
+cv2.imwrite('wo_bc.png', np.array(prediction[150, :, :],dtype = np.uint8))
 cv2.imwrite('labels.png', np.array(testing_labels_processed_cat[150, :, :],dtype = np.uint8))
 
 N_RUNS = 10

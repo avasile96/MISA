@@ -58,7 +58,7 @@ CONTENT_THRESHOLD = 0.3
 N_EPOCHS = 10
 BATCH_SIZE = 32
 PATIENCE = 10
-MODEL_FNAME_PATTERN = './model_bc.h5'
+MODEL_FNAME_PATTERN = './model_bc1.h5'
 OPTIMISER = 'Adam'
 LOSS = 'categorical_crossentropy'
 
