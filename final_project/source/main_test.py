@@ -11,6 +11,7 @@ import numpy as np
 import nibabel as nib
 import matplotlib.pyplot as plt # plotting purposes
 import cv2
+import SimpleITK as sitk
 
 import tensorflow as tf
 
@@ -41,7 +42,7 @@ N_EPOCHS = 10
 BATCH_SIZE = 32
 PATIENCE = 10
 # MODEL_FNAME_PATTERN = 'model_bc.h5'
-MODEL_FNAME_PATTERN = 'model.h5'
+MODEL_FNAME_PATTERN = 'model_bc_z-score.h5'
 OPTIMISER = 'Adam'
 LOSS = 'categorical_crossentropy'
 
@@ -49,10 +50,12 @@ LOSS = 'categorical_crossentropy'
 
 def load_data(n_volumes=N_VOLUMES, image_size=IMAGE_SIZE, fname_pattern=FNAME_PATTERN, case = 'Training_Set') :
   volumes = np.zeros((n_volumes, *image_size))
+  # volumes = np.zeros((n_volumes, *image_size, 1))
   labels = np.zeros((n_volumes, *image_size, 1))
   counter = 0
   for i in os.listdir('../TrainingValidationTestSets/{}/'.format(case)):
     img_data = nib.load(fname_pattern.format(case,i,i+'_bc'))
+    # img_data = nib.load(fname_pattern.format(case,i,i))
     volumes[counter] = img_data.get_fdata()
 
     seg_data = nib.load(fname_pattern.format(case,i,i+'_seg'))
@@ -191,19 +194,52 @@ def compute_dice(prediction, labels) :
     dices.append(dice)
     print(f'Dice coefficient class {c} equal to { dice : .2f}')
 
+def compute_volumentric_difference(in1, in2, label  = 'all'):
+    if label  == 'all':
+#        vol_dif  = np.sum((in1 != in2) & (in1 !=0) & (in2 !=0))
+        return np.sum((in1 != in2)) / ((np.sum(in1 > 0) + np.sum(in2 > 0)))
+
+    else:
+        in1  = (in1 == label) * 1
+        in2  = (in2 == label) * 1
+        return np.sum((in1 != in2)) / ((np.sum(in1 > 0) + np.sum(in2 > 0)))
+
+def compute_hausdorff_distance(in1, in2, label = 'all'):
+    hausdorff_distance_filter = sitk.HausdorffDistanceImageFilter()
+    in1 = sitk.GetImageFromArray(in1)
+    in2 = sitk.GetImageFromArray(in2)
+    if label == 'all':
+        # Hausdorff distance
+        hausdorff_distance_filter.Execute(in1, in2)
+    else:
+    
+        in1_array  = sitk.GetArrayFromImage(in1)
+        in1_array = (in1_array == label) *1 
+        in1_array = in1_array.astype('uint16')  
+        img1 = sitk.GetImageFromArray(in1_array)
+        
+        in2_array  = sitk.GetArrayFromImage(in2)
+        in2_array = (in2_array == label) *1 
+        in2_array = in2_array.astype('uint16')  
+        img2 = sitk.GetImageFromArray(in2_array)
+        # Hausdorff distance
+        hausdorff_distance_filter.Execute(img1, img2)
+    return hausdorff_distance_filter.GetHausdorffDistance()
+
+
 compute_dice(prediction, testing_labels_processed_cat)
 
-cv2.imwrite('wo_bc.png', np.array(prediction[150, :, :],dtype = np.uint8))
+cv2.imwrite('bc_z-score.png', np.array(prediction[150, :, :],dtype = np.uint8))
 cv2.imwrite('labels.png', np.array(testing_labels_processed_cat[150, :, :],dtype = np.uint8))
 
-N_RUNS = 10
-# predictions = np.zeros(IMAGE_SIZE+(N_CLASSES, N_RUNS, ))
-predictions = []
-for run in range(N_RUNS) :
-  predictions.append(u_net.predict(x=testing_volumes_processed))
+# N_RUNS = 5
+# # predictions = np.zeros(IMAGE_SIZE+(N_CLASSES, N_RUNS, ))
+# predictions = []
+# for run in range(N_RUNS) :
+#   predictions.append(u_net.predict(x=testing_volumes_processed))
 
-mean_prediction = np.array(predictions).mean(axis=-1)
-std_prediction = np.array(predictions).std(axis=-1)
+# mean_prediction = np.array(predictions).mean(axis=-1)
+# std_prediction = np.array(predictions).std(axis=-1)
 
 
 # cv2.imwrite('damnbro.png', np.array(prediction[150, :, :],dtype = np.uint8))

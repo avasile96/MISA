@@ -58,7 +58,7 @@ CONTENT_THRESHOLD = 0.3
 N_EPOCHS = 10
 BATCH_SIZE = 32
 PATIENCE = 10
-MODEL_FNAME_PATTERN = './model_bc1.h5'
+MODEL_FNAME_PATTERN = './model_bc_z-score.h5'
 OPTIMISER = 'Adam'
 LOSS = 'categorical_crossentropy'
 
@@ -142,10 +142,13 @@ def get_unet(img_size=PATCH_SIZE, n_classes=N_CLASSES, n_input_channels=N_INPUT_
 
 def load_data(n_volumes=N_VOLUMES, image_size=IMAGE_SIZE, fname_pattern=FNAME_PATTERN, case = 'Training_Set') :
   volumes = np.zeros((n_volumes, *image_size))
+  # volumes = np.zeros((n_volumes, *image_size, 1))
   labels = np.zeros((n_volumes, *image_size, 1))
+  # labels = np.zeros((n_volumes, *image_size))
   counter = 0
   for i in os.listdir('../TrainingValidationTestSets/{}/'.format(case)):
     img_data = nib.load(fname_pattern.format(case,i,i+'_bc'))
+    # img_data = nib.load(fname_pattern.format(case,i,i))
     volumes[counter] = img_data.get_fdata()
 
     seg_data = nib.load(fname_pattern.format(case,i,i+'_seg'))
@@ -163,6 +166,12 @@ def load_data(n_volumes=N_VOLUMES, image_size=IMAGE_SIZE, fname_pattern=FNAME_PA
 
 def z_score_standardisation(x, avg, std):
   return (x-avg)/std
+
+ref_avg = training_volumes[training_labels[:,:,:,:,0]!=0].mean()
+ref_std = training_volumes[training_labels[:,:,:,:,0]!=0].std()
+
+training_volumes = z_score_standardisation(training_volumes, ref_avg, ref_std)
+validation_volumes = z_score_standardisation(validation_volumes, ref_avg, ref_std)
 
 """**Extract *useful* patches**
 
