@@ -42,7 +42,7 @@ N_EPOCHS = 10
 BATCH_SIZE = 32
 PATIENCE = 10
 # MODEL_FNAME_PATTERN = 'model_bc.h5'
-MODEL_FNAME_PATTERN = 'model_bc_z-score.h5'
+MODEL_FNAME_PATTERN = 'model_z_score.h5'
 OPTIMISER = 'Adam'
 LOSS = 'categorical_crossentropy'
 
@@ -63,8 +63,36 @@ def load_data(n_volumes=N_VOLUMES, image_size=IMAGE_SIZE, fname_pattern=FNAME_PA
     counter += 1
   return (volumes, labels)
 
+def load_tst_data(n_volumes=N_VOLUMES, image_size=IMAGE_SIZE, fname_pattern=FNAME_PATTERN, case = 'Training_Set') :
+  volumes = np.zeros((n_volumes, *image_size))
+  # volumes = np.zeros((n_volumes, *image_size, 1))
+  # labels = np.zeros((n_volumes, *image_size, 1))
+  counter = 0
+  for i in os.listdir('../TrainingValidationTestSets/{}/'.format(case)):
+    img_data = nib.load(fname_pattern.format(case,i,i+'_bc'))
+    # img_data = nib.load(fname_pattern.format(case,i,i))
+    volumes[counter] = img_data.get_fdata()
+
+    # seg_data = nib.load(fname_pattern.format(case,i,i+'_seg'))
+    # labels[counter] = seg_data.get_fdata()
+    counter += 1
+  return volumes
+
 """**Split into training, validation and testing**"""
 (testing_volumes, testing_labels) = load_data(N_VOLUMES, IMAGE_SIZE, FNAME_PATTERN, case = 'Validation_Set')
+# testing_volumes = load_tst_data(N_VOLUMES, IMAGE_SIZE, FNAME_PATTERN, case = 'Test_Set')
+
+
+"""**Pre-process data**"""
+
+def z_score_standardisation(x, avg, std):
+  return (x-avg)/std
+
+ref_avg = testing_volumes[testing_labels[:,:,:,:,0]!=0].mean()
+ref_std = testing_volumes[testing_labels[:,:,:,:,0]!=0].std()
+
+testing_volumes = z_score_standardisation(testing_volumes, ref_avg, ref_std)
+
 
 
 """**Define SegNet architecture**"""
@@ -154,8 +182,8 @@ u_net = get_unet(
     n_classes=N_CLASSES,
     n_input_channels=N_INPUT_CHANNELS)
 u_net.compile(optimizer=OPTIMISER, loss=LOSS)
-u_net.load_weights('unet.h5')
-
+# u_net.load_weights('unet.h5')
+u_net.load_weights(MODEL_FNAME_PATTERN)
 
 
 """**Prepare test data**"""
@@ -226,11 +254,11 @@ def compute_hausdorff_distance(in1, in2, label = 'all'):
         hausdorff_distance_filter.Execute(img1, img2)
     return hausdorff_distance_filter.GetHausdorffDistance()
 
-
+# opening = cv2.morphologyEx(prediction.astype(np.int16), cv2.MORPH_OPEN, (3,3))
 compute_dice(prediction, testing_labels_processed_cat)
 
-cv2.imwrite('bc_z-score.png', np.array(prediction[150, :, :],dtype = np.uint8))
-cv2.imwrite('labels.png', np.array(testing_labels_processed_cat[150, :, :],dtype = np.uint8))
+# cv2.imwrite('prediction.png', np.array(prediction[128, :, :],dtype = np.uint8))
+# cv2.imwrite('labels.png', np.array(testing_labels_processed_cat[150, :, :],dtype = np.uint8))
 
 # N_RUNS = 5
 # # predictions = np.zeros(IMAGE_SIZE+(N_CLASSES, N_RUNS, ))
@@ -244,6 +272,30 @@ cv2.imwrite('labels.png', np.array(testing_labels_processed_cat[150, :, :],dtype
 
 # cv2.imwrite('damnbro.png', np.array(prediction[150, :, :],dtype = np.uint8))
 # plt.imshow(std_prediction[:, :, 150, 2])
+# opening = cv.morphologyEx(img, cv.MORPH_OPEN, kernel)
 
+#%% Save predictions
+# volume1 = prediction[0:256,:,:].astype(np.int16)
+# volume2 = prediction[256:512,:,:].astype(np.int16)
+# volume3 = prediction[512:768,:,:].astype(np.int16)
+
+# tt1 = nib.load('..\\TrainingValidationTestSets\\Test_Set\\IBSR_02\\IBSR_02_bc.nii')
+# tt2 = nib.load('..\\TrainingValidationTestSets\\Test_Set\\IBSR_10\\IBSR_10_bc.nii')
+# tt3 = nib.load('..\\TrainingValidationTestSets\\Test_Set\\IBSR_15\\IBSR_15_bc.nii')
+
+# img1 = nib.Nifti1Image(volume1, tt1.affine)
+# img1.get_data_dtype() == np.dtype(np.int16)
+# img1.header.get_xyzt_units()
+# nib.save(img1, 'IBSR_02_mask.nii.gz')
+
+# img2 = nib.Nifti1Image(volume2, tt2.affine)
+# img2.get_data_dtype() == np.dtype(np.int16)
+# img2.header.get_xyzt_units()
+# nib.save(img2, 'IBSR_10_mask.nii.gz')
+
+# img3 = nib.Nifti1Image(volume3, tt3.affine)
+# img3.get_data_dtype() == np.dtype(np.int16)
+# img3.header.get_xyzt_units()
+# nib.save(img3, 'IBSR_15_mask.nii.gz')
 
 
